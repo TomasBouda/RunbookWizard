@@ -12,6 +12,7 @@
 
   <Application.Styles>
     <FluentTheme />
+    <StyleInclude Source="avares://AvaloniaEdit/Themes/Fluent/AvaloniaEdit.xaml" />
     <StyleInclude Source="avares://TomLabs.AutoUpdate.Avalonia/Themes/Default.axaml" />
     <StyleInclude Source="avares://RunbookWizard/Styles/Controls.axaml" />
     <StyleInclude Source="avares://RunbookWizard/Styles/Wizard.axaml" />

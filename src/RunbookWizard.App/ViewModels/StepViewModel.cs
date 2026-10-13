@@ -71,6 +71,9 @@ public sealed partial class StepViewModel : ObservableObject
 
     public string ShellLabel => IsScript ? _owner.ShellName(Model) : string.Empty;
 
+    /// <summary>The language of the command preview, so it is highlighted as PowerShell, bash or batch.</summary>
+    public string PreviewLanguage => CodeLanguage.ForShell(_owner.Runbook?.ShellOf(Model) ?? ShellKind.Powershell);
+
     public string Subtitle => IsScript ? $"script · {ShellLabel}" : Type.ToString().ToLowerInvariant();
 
     public string ConfirmText => string.IsNullOrWhiteSpace(Model.Confirm) ? "Done" : Model.Confirm!;

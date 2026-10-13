@@ -13,6 +13,7 @@ one canonical model that people and AIs can both write: [FORMAT.md](FORMAT.md), 
   - `MainWindowViewModel` (pages Welcome, Overview, Parameters, Step, Logs; ordering and blocking), `StepViewModel` (status, commands, output), `VariableViewModel`, `CommandPaletteViewModel`, `LogsViewModel`.
   - `Services`: `SettingsStore` (JSON settings), `AppLog` (Serilog, daily files plus in-memory ring buffer), `ThemeModes`.
   - `Styles`: ops-console tokens and controls copied from IISBlitz/AppShelf, plus `Wizard.axaml`.
+  - `Controls`: `MarkdownView` (Markdown.Avalonia engine, themed by `Styles/Markdown.axaml`) and `CodeView` (read-only AvaloniaEdit with `Services/CodeHighlighting`; bash and batch grammars in `Assets/Highlighting`). See ADR 0007.
 - `tests/RunbookWizard.Core.Tests` unit tests; `tests/ui-fixture` synthetic data for UI automation.
 
 ## Data flow
@@ -40,4 +41,4 @@ The app uses `UsePlatformDetectOrHeadless` so the same build runs headless for U
 - No resume after closing the app.
 
 ## Decisions
-See [decisions](decisions/README.md): stack (0001), storage (0002), format (0003), execution and trust (0004), distribution (0005), player behaviour and UI (0006).
+See [decisions](decisions/README.md): stack (0001), storage (0002), format (0003), execution and trust (0004), distribution (0005), player behaviour and UI (0006), Markdown and syntax highlighting (0007).

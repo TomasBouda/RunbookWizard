@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Added: Markdown in step descriptions, "why" and info text is rendered (bold, italic, code, lists, links, headings, fenced code).
+- Added: syntax highlighting for the command preview (PowerShell, bash, cmd) and for fenced code blocks, in light and dark.
+
 ## 0.1.0 — 2026-10-13
 
 - Added: one guide format, Markdown with YAML frontmatter or JSON, validated against a JSON Schema, with a specification and examples.

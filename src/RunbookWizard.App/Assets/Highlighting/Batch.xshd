@@ -1,0 +1,80 @@
+<?xml version="1.0"?>
+<!-- Syntax definition for Windows cmd / batch files, in AvaloniaEdit's xshd format (the stock set has no batch definition). -->
+<SyntaxDefinition name="Batch" extensions=".bat;.cmd" xmlns="http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008">
+  <Color name="Comment" foreground="#2E7D32" />
+  <Color name="String" foreground="#A31515" />
+  <Color name="Keyword" foreground="#0000FF" fontWeight="bold" />
+  <Color name="Builtin" foreground="#AF00DB" />
+  <Color name="Variable" foreground="#00669E" />
+  <Color name="Number" foreground="#098658" />
+  <Color name="Operator" foreground="#795E26" />
+  <Color name="Label" foreground="#795E26" />
+
+  <RuleSet ignoreCase="true">
+    <Span color="Comment" begin="(?&lt;![^\s(])(?:rem\b|::)" />
+    <Span color="String">
+      <Begin>"</Begin>
+      <End>"</End>
+      <RuleSet>
+        <Rule color="Variable">%[A-Za-z0-9_~:.]+%|%%?[A-Za-z0-9~]|![A-Za-z0-9_]+!</Rule>
+      </RuleSet>
+    </Span>
+    <Rule color="Variable">%[A-Za-z0-9_~:.]+%|%%?[A-Za-z0-9~]|![A-Za-z0-9_]+!</Rule>
+    <Rule color="Label">^\s*:[A-Za-z_][\w]*</Rule>
+    <Keywords color="Keyword">
+      <Word>if</Word>
+      <Word>else</Word>
+      <Word>for</Word>
+      <Word>in</Word>
+      <Word>do</Word>
+      <Word>goto</Word>
+      <Word>call</Word>
+      <Word>exist</Word>
+      <Word>not</Word>
+      <Word>defined</Word>
+      <Word>errorlevel</Word>
+      <Word>equ</Word>
+      <Word>neq</Word>
+      <Word>lss</Word>
+      <Word>leq</Word>
+      <Word>gtr</Word>
+      <Word>geq</Word>
+    </Keywords>
+    <Keywords color="Builtin">
+      <Word>echo</Word>
+      <Word>set</Word>
+      <Word>setlocal</Word>
+      <Word>endlocal</Word>
+      <Word>cd</Word>
+      <Word>chdir</Word>
+      <Word>dir</Word>
+      <Word>copy</Word>
+      <Word>xcopy</Word>
+      <Word>robocopy</Word>
+      <Word>move</Word>
+      <Word>del</Word>
+      <Word>erase</Word>
+      <Word>rd</Word>
+      <Word>rmdir</Word>
+      <Word>md</Word>
+      <Word>mkdir</Word>
+      <Word>type</Word>
+      <Word>find</Word>
+      <Word>findstr</Word>
+      <Word>start</Word>
+      <Word>pushd</Word>
+      <Word>popd</Word>
+      <Word>pause</Word>
+      <Word>exit</Word>
+      <Word>ver</Word>
+      <Word>title</Word>
+      <Word>mklink</Word>
+      <Word>reg</Word>
+      <Word>sc</Word>
+      <Word>net</Word>
+      <Word>taskkill</Word>
+    </Keywords>
+    <Rule color="Number">\b\d+\b</Rule>
+    <Rule color="Operator">(?&lt;!\S)/[A-Za-z?][\w]*|&amp;&amp;|\|\||[|&amp;&gt;&lt;]+</Rule>
+  </RuleSet>
+</SyntaxDefinition>

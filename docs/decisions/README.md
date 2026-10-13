@@ -11,3 +11,4 @@ a new record that supersedes the old one. Current shape of the system: [../ARCHI
 | [0004](0004-execution-model-and-trust.md) | Execution model: nothing runs without a click, exact command shown, guides are untrusted | accepted |
 | [0005](0005-distribution.md) | Distribution through TomLabs.AutoUpdate and the app store | proposed |
 | [0006](0006-player-behaviour-and-ui.md) | Player behaviour and UI: ordered blocking steps, double confirmation for destructive, ops-console style | accepted |
+| [0007](0007-markdown-and-syntax-highlighting.md) | Markdown rendering (Markdown.Avalonia) and syntax highlighting (AvaloniaEdit + own bash/batch grammars) | accepted |

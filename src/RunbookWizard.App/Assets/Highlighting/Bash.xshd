@@ -1,0 +1,69 @@
+<?xml version="1.0"?>
+<!-- Syntax definition for bash / sh, in AvaloniaEdit's xshd format (the stock set has no shell definition). -->
+<SyntaxDefinition name="Bash" extensions=".sh;.bash" xmlns="http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008">
+  <Color name="Comment" foreground="#2E7D32" />
+  <Color name="String" foreground="#A31515" />
+  <Color name="Keyword" foreground="#0000FF" fontWeight="bold" />
+  <Color name="Builtin" foreground="#AF00DB" />
+  <Color name="Variable" foreground="#00669E" />
+  <Color name="Number" foreground="#098658" />
+  <Color name="Operator" foreground="#795E26" />
+
+  <RuleSet ignoreCase="false">
+    <Span color="Comment" begin="(?&lt;![\w$])#" />
+    <Span color="String" multiline="true">
+      <Begin>"</Begin>
+      <End>"</End>
+      <RuleSet>
+        <Span begin="\\" end="." />
+        <Rule color="Variable">\$\{[^}]*\}|\$\([^)]*\)|\$[A-Za-z_][A-Za-z0-9_]*|\$[0-9@#?*!$-]</Rule>
+      </RuleSet>
+    </Span>
+    <Span color="String" multiline="true" begin="'" end="'" />
+    <Rule color="Variable">\$\{[^}]*\}|\$[A-Za-z_][A-Za-z0-9_]*|\$[0-9@#?*!$-]</Rule>
+    <Keywords color="Keyword">
+      <Word>if</Word>
+      <Word>then</Word>
+      <Word>else</Word>
+      <Word>elif</Word>
+      <Word>fi</Word>
+      <Word>for</Word>
+      <Word>while</Word>
+      <Word>until</Word>
+      <Word>do</Word>
+      <Word>done</Word>
+      <Word>case</Word>
+      <Word>esac</Word>
+      <Word>in</Word>
+      <Word>function</Word>
+      <Word>select</Word>
+      <Word>time</Word>
+    </Keywords>
+    <Keywords color="Builtin">
+      <Word>echo</Word>
+      <Word>printf</Word>
+      <Word>cd</Word>
+      <Word>pwd</Word>
+      <Word>export</Word>
+      <Word>local</Word>
+      <Word>readonly</Word>
+      <Word>declare</Word>
+      <Word>set</Word>
+      <Word>unset</Word>
+      <Word>source</Word>
+      <Word>exit</Word>
+      <Word>return</Word>
+      <Word>break</Word>
+      <Word>continue</Word>
+      <Word>read</Word>
+      <Word>test</Word>
+      <Word>eval</Word>
+      <Word>exec</Word>
+      <Word>trap</Word>
+      <Word>shift</Word>
+      <Word>sudo</Word>
+    </Keywords>
+    <Rule color="Number">\b\d+\b</Rule>
+    <Rule color="Operator">(?&lt;!\S)-{1,2}[A-Za-z][\w-]*|&amp;&amp;|\|\||[|;&gt;&lt;]+</Rule>
+  </RuleSet>
+</SyntaxDefinition>

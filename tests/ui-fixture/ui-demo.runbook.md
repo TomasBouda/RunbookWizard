@@ -12,11 +12,20 @@ variables:
 
 ## Read this first
 
-A step of type info is only text. It has no command and needs one click to move on.
+A step of type **info** is only text. It has no command and needs *one click* to move on.
+
+- Descriptions are rendered as Markdown: **bold**, *italic*, `inline code` and [links](https://example.com).
+- Lists, headings and fenced code blocks work too.
+
+### Details
+
+```json
+{ "format": "runbook", "version": 1, "enabled": true }
+```
 
 ### Why
 
-It shows the description and the "why" blocks as an end user sees them.
+It shows the description and the *Why* block as an end user sees them, with **formatting** and `code`.
 
 ## Greet
 
@@ -96,3 +105,13 @@ confirm: I have restarted the machine
 ```
 
 A manual step: the person does it, then confirms.
+
+## Show the folder with cmd
+
+Runs a **cmd** command so the batch highlighting can be seen.
+
+```cmd
+REM list the temp folder
+echo Hello %USERNAME%
+if exist "%TEMP%" (dir /b "%TEMP%" | find /c /v "") else (echo none)
+```

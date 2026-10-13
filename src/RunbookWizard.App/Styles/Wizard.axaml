@@ -28,12 +28,6 @@
         <Setter Property="CornerRadius" Value="6"/>
         <Setter Property="Padding" Value="12,10"/>
     </Style>
-    <Style Selector="Border.command SelectableTextBlock">
-        <Setter Property="FontFamily" Value="{StaticResource MonoFont}"/>
-        <Setter Property="FontSize" Value="12"/>
-        <Setter Property="TextWrapping" Value="Wrap"/>
-        <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
-    </Style>
 
     <!-- Live output. -->
     <Style Selector="Border.output">

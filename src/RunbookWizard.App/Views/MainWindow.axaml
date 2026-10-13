@@ -7,6 +7,8 @@
         xmlns:services="using:RunbookWizard.App.Services"
         xmlns:exec="using:RunbookWizard.Core.Execution"
         xmlns:sys="using:System"
+        xmlns:ctl="using:RunbookWizard.App.Controls"
+       
         xmlns:update="clr-namespace:TomLabs.AutoUpdate.Avalonia;assembly=TomLabs.AutoUpdate.Avalonia"
         mc:Ignorable="d" d:DesignWidth="1280" d:DesignHeight="800"
         x:Class="RunbookWizard.App.Views.MainWindow"
@@ -185,7 +187,7 @@
                 <TextBlock Classes="title" FontSize="20" Text="{Binding GuideTitle}" TextWrapping="Wrap" />
                 <TextBlock Classes="mono muted" FontSize="11" Text="{Binding GuideMeta}" IsVisible="{Binding GuideMeta, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
               </StackPanel>
-              <SelectableTextBlock Classes="prose secondary" Text="{Binding GuideDescription}" IsVisible="{Binding GuideDescription, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+              <ctl:MarkdownView Name="GuideDescriptionView" Classes="secondary" Markdown="{Binding GuideDescription}" MaxWidth="760" HorizontalAlignment="Left" IsVisible="{Binding GuideDescription, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
 
               <Border Classes="notice ok" IsVisible="{Binding IsFinished}">
                 <StackPanel Orientation="Horizontal" Spacing="10">
@@ -278,12 +280,12 @@
                 </Grid>
               </Border>
 
-              <SelectableTextBlock Classes="prose" Text="{Binding Description}" IsVisible="{Binding HasDescription}" />
+              <ctl:MarkdownView Name="DescriptionView" Markdown="{Binding Description}" IsVisible="{Binding HasDescription}" MaxWidth="760" HorizontalAlignment="Left" />
 
               <Border Classes="card" Padding="14,10" IsVisible="{Binding HasWhy}">
                 <StackPanel Spacing="4">
                   <TextBlock Classes="section" Text="WHY" />
-                  <SelectableTextBlock Classes="prose secondary" Text="{Binding Why}" />
+                  <ctl:MarkdownView Name="WhyView" Classes="secondary" Markdown="{Binding Why}" MaxWidth="760" HorizontalAlignment="Left" />
                 </StackPanel>
               </Border>
 
@@ -294,7 +296,7 @@
                              Text="{Binding WorkingDirectory, StringFormat='runs in {0}'}" ToolTip.Tip="{Binding WorkingDirectory}" />
                 </Grid>
                 <Border Classes="command">
-                  <SelectableTextBlock Name="CommandText" Text="{Binding Preview}" />
+                  <ctl:CodeView Name="CommandText" Code="{Binding Preview}" Language="{Binding PreviewLanguage}" />
                 </Border>
               </StackPanel>
 
