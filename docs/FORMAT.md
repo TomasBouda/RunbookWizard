@@ -90,7 +90,7 @@ slug gets `-2`, `-3`).
 | `type` | `info` / `manual` / `script` / `choice` | inferred | `info` is read only; `manual` the person does something and confirms; `script` has a Run button; `choice` asks the person to pick a way (section 5.1). |
 | `description` | Markdown | | What to do. |
 | `why` | Markdown | | Why it is needed; what an error here usually means. |
-| `confirm` | string | "Done" | `manual` only: the sentence the person confirms ("I have restarted the machine"). |
+| `confirm` | string | "Done" | `manual` only: the sentence the person confirms ("I have restarted the machine"). A manual step may hold a checklist, see section 5.3. |
 | `shell` | `powershell` `pwsh` `winps` `bash` `sh` `cmd` | guide `shell`, else `powershell` | See section 5. |
 | `script` | string | | The script body (a `script` step must have one; `info`/`manual` must not). |
 | `workingDirectory` | string | the guide's folder | Supports `{{Variable}}`. |
@@ -191,6 +191,34 @@ the rest of the command is read only. It edits the same value as the Parameters 
 and the secret flag come from the variable declaration (a secret is entered masked and stays masked). Nothing about the
 format changes: authors write `{{Name}}` as before. `\{{Name}}` is shown literally.
 
+### 5.3 Checklists in manual steps
+
+A `manual` step can list several things to do. Write them as Markdown task-list lines in the step text:
+
+````markdown
+## Prepare the workstation
+
+```step
+type: manual
+confirm: The workstation is ready
+```
+
+Go through the machine:
+
+- [ ] Sign out of every personal account
+- [ ] Update Windows and **restart** once
+- [ ] (optional) Wipe the browser profile
+````
+
+- An item is a line `- [ ] text` (`*` and `+` bullets work too, no indentation beyond 3 spaces, one line per item). `- [x]` is not an item.
+  Lines inside a code fence are examples and are left alone.
+- An item that starts with `(optional)` (any case) may stay unticked; every other item is **required**.
+- The player shows the items as checkboxes under the step text (the rest of the text is rendered as Markdown as usual) and keeps the
+  confirm button disabled until every required item is ticked. Reset clears the boxes. Item text is plain text: `code`, `**bold**` and
+  links lose their markers.
+- It is only part of the text, so the JSON form needs nothing new: put the same lines in `description`. The schema is unchanged.
+- A checklist in a step that is not `manual` is shown as plain text (warning). Ticks are kept for the run only for now (ADR 0010).
+
 ## 6. Canonical model (JSON)
 
 ```json
@@ -225,7 +253,7 @@ Two layers; the player shows the findings with their path (`steps[3].success.out
    `when` referring to an unknown variable; `next`, `onFailure` or an option `goto` naming an unknown step; a loop; a
    `choice` with fewer than two options or a duplicate option label; `options` on a step that is not a `choice`; `choice` default not among the choices; an unknown field anywhere (also
    in the frontmatter, never silently ignored); a script step without script.
-   Warnings: a script the risk scanner finds potentially destructive but that is not marked `destructive`; a
+   Warnings: a checklist in a step that is not manual, a manual checklist whose items are all optional; a script the risk scanner finds potentially destructive but that is not marked `destructive`; a
    `destructive` step without a `warning`.
 
 A guide with errors can be inspected but not run.
@@ -241,7 +269,7 @@ Write a `.runbook.md` file. Checklist:
 4. Prefer a check step before and after every change (`success.outputMatches` or exit code) so the player can tell
    whether it worked.
 5. Mark anything that deletes, overwrites, reinstalls, reboots or changes security as `destructive: true` with a `warning`.
-6. Use `type: manual` for things a script cannot do (sign in to a portal, reboot, approve a prompt).
+6. Use `type: manual` for things a script cannot do (sign in to a portal, reboot, approve a prompt); several things in one go are a `- [ ] item` checklist (section 5.3, `(optional)` for the ones that need not block).
 7. Scripts must be non-interactive, idempotent where possible, and print what they did.
 8. Secrets are `type: secret` variables read from `$env:RUNBOOK_VAR_<Name>`, never `{{Name}}` in the script text.
 9. Use `type: choice` for a real decision, `onFailure` for a recovery step, and `next` on the last step of each path. See `examples/branching-deploy.runbook.md`.

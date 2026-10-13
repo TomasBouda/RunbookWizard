@@ -35,6 +35,39 @@ public sealed partial class StepViewModel : ObservableObject
         Index = index;
         InlineParameters = owner.Parameters.ToDictionary(p => p.Name, StringComparer.Ordinal);
         Options = new ObservableCollection<OptionViewModel>(model.Options.Select(o => new OptionViewModel(this, o)));
+        var parsed = model.EffectiveType == StepType.Manual ? Checklist.Parse(model.Description) : null;
+        _description = parsed is { HasItems: true } ? parsed.Text : model.Description;
+        ChecklistItems = new ObservableCollection<ChecklistItemViewModel>((parsed?.Items ?? Array.Empty<ChecklistItem>()).Select(i => new ChecklistItemViewModel(this, i)));
+    }
+
+    private readonly string? _description;
+
+    /// <summary>The checkboxes of a manual step (ADR 0010); empty for every other step.</summary>
+    public ObservableCollection<ChecklistItemViewModel> ChecklistItems { get; }
+
+    public bool HasChecklist => ChecklistItems.Count > 0;
+
+    /// <summary>The indexes of the ticked items. This is the whole checklist state of the step: what a run-state store would persist, with <see cref="ChecklistFingerprint"/>.</summary>
+    public IReadOnlySet<int> TickedItems => ChecklistItems.Where(i => i.IsChecked).Select(i => i.Index).ToHashSet();
+
+    public string ChecklistFingerprint => Checklist.Fingerprint(ChecklistItems.Select(i => i.Model).ToList());
+
+    /// <summary>True when every required item is ticked (or there is no checklist).</summary>
+    public bool ChecklistComplete => Checklist.IsComplete(ChecklistItems.Select(i => i.Model).ToList(), TickedItems);
+
+    /// <summary>"2 of 3 required items ticked"; empty when nothing is required.</summary>
+    public string ChecklistProgress => Checklist.Progress(ChecklistItems.Select(i => i.Model).ToList(), TickedItems);
+
+    /// <summary>The boxes can be changed while the step is open: not blocked, not settled, not skipped.</summary>
+    public bool CanTick => HasChecklist && !IsBlocked && !IsDone && !IsSkipped;
+
+    internal void ChecklistChanged(ChecklistItemViewModel item)
+    {
+        OnPropertyChanged(nameof(ChecklistComplete));
+        OnPropertyChanged(nameof(ChecklistProgress));
+        OnPropertyChanged(nameof(CanFinish));
+        OnPropertyChanged(nameof(WaitsForChecklist));
+        AppLog.For("run").Debug("Step {Step} checklist item {Index} {State}", Id, item.Index, item.IsChecked ? "ticked" : "unticked");
     }
 
     internal MainWindowViewModel Owner => _owner;
@@ -49,9 +82,9 @@ public sealed partial class StepViewModel : ObservableObject
 
     public string Title => Model.Title;
 
-    public string? Description => Model.Description;
+    public string? Description => _description;
 
-    public bool HasDescription => !string.IsNullOrWhiteSpace(Model.Description);
+    public bool HasDescription => !string.IsNullOrWhiteSpace(_description);
 
     public string? Why => Model.Why;
 
@@ -122,7 +155,7 @@ public sealed partial class StepViewModel : ObservableObject
     public bool HasOutput => Output.Count > 0;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsPending), nameof(IsRunning), nameof(IsDone), nameof(IsFailed), nameof(IsSkipped), nameof(StatusLabel), nameof(StatusIcon), nameof(RunLabel), nameof(CanRun), nameof(CanSkip), nameof(CanFinish), nameof(CanNext))]
+    [NotifyPropertyChangedFor(nameof(IsPending), nameof(IsRunning), nameof(IsDone), nameof(IsFailed), nameof(IsSkipped), nameof(StatusLabel), nameof(StatusIcon), nameof(RunLabel), nameof(CanRun), nameof(CanSkip), nameof(CanFinish), nameof(ShowFinish), nameof(WaitsForChecklist), nameof(CanTick), nameof(CanNext))]
     private StepStatus _status = StepStatus.Pending;
 
     [ObservableProperty]
@@ -133,7 +166,7 @@ public sealed partial class StepViewModel : ObservableObject
     private bool _skippedByBranch;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(CanRun), nameof(CanFinish), nameof(CanSkip), nameof(CanChoose))]
+    [NotifyPropertyChangedFor(nameof(CanRun), nameof(CanFinish), nameof(ShowFinish), nameof(WaitsForChecklist), nameof(CanTick), nameof(CanSkip), nameof(CanChoose))]
     private bool _isBlocked;
 
     [ObservableProperty]
@@ -180,7 +213,14 @@ public sealed partial class StepViewModel : ObservableObject
     /// <summary>The Run button is available when the steps before are settled, the parameters are complete and nothing is running.</summary>
     public bool CanRun => IsScript && !IsBlocked && !IsRunning && !ConfirmPending && Problems.Length == 0;
 
-    public bool CanFinish => (IsManual || IsInfo) && !IsBlocked && !IsDone;
+    /// <summary>The confirm button is shown for manual and info steps that are open.</summary>
+    public bool ShowFinish => (IsManual || IsInfo) && !IsBlocked && !IsDone;
+
+    /// <summary>The confirm button is enabled once every required checklist item is ticked (ADR 0010).</summary>
+    public bool CanFinish => ShowFinish && ChecklistComplete;
+
+    /// <summary>The step could be confirmed but required checklist items are still open.</summary>
+    public bool WaitsForChecklist => ShowFinish && !ChecklistComplete;
 
     /// <summary>Choice options can be picked (also again, to take another path) while the step is not blocked or skipped.</summary>
     public bool CanChoose => IsChoice && !IsBlocked && !IsSkipped && !IsRunning;
@@ -336,6 +376,8 @@ public sealed partial class StepViewModel : ObservableObject
         SkippedByCondition = false;
         SkippedByBranch = false;
         _chosenTarget = null;
+        foreach (var item in ChecklistItems)
+            item.IsChecked = false;
         foreach (var option in Options)
             option.IsChosen = false;
         Status = StepStatus.Pending;
@@ -442,4 +484,32 @@ public sealed partial class OptionViewModel : ObservableObject
 
     [ObservableProperty]
     private bool _isChosen;
+}
+
+/// <summary>One checkbox of a manual step (ADR 0010).</summary>
+public sealed partial class ChecklistItemViewModel : ObservableObject
+{
+    private readonly StepViewModel _step;
+
+    public ChecklistItemViewModel(StepViewModel step, ChecklistItem model)
+    {
+        _step = step;
+        Model = model;
+    }
+
+    public ChecklistItem Model { get; }
+
+    public int Index => Model.Index;
+
+    /// <summary>The text next to the box: basic inline Markdown shown without its markers.</summary>
+    public string Text => Checklist.ToPlainText(Model.Text);
+
+    public bool Required => Model.Required;
+
+    public bool IsOptional => !Model.Required;
+
+    [ObservableProperty]
+    private bool _isChecked;
+
+    partial void OnIsCheckedChanged(bool value) => _step.ChecklistChanged(this);
 }

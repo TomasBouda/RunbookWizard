@@ -287,6 +287,28 @@
 
               <ctl:MarkdownView Name="DescriptionView" Markdown="{Binding Description}" IsVisible="{Binding HasDescription}" MaxWidth="760" HorizontalAlignment="Left" />
 
+              <Border Name="ChecklistCard" Classes="card" Padding="14,10" IsVisible="{Binding HasChecklist}">
+                <StackPanel Spacing="6">
+                  <Grid ColumnDefinitions="Auto,16,*">
+                    <TextBlock Classes="section" Text="CHECKLIST" VerticalAlignment="Center" />
+                    <TextBlock Name="ChecklistProgressText" Grid.Column="2" Classes="mono muted" FontSize="10.5" HorizontalAlignment="Right" Text="{Binding ChecklistProgress}" />
+                  </Grid>
+                  <ItemsControl Name="ChecklistList" ItemsSource="{Binding ChecklistItems}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="vm:ChecklistItemViewModel">
+                        <CheckBox Classes="checklist" IsChecked="{Binding IsChecked}" MinHeight="40" VerticalContentAlignment="Center"
+                                  IsEnabled="{Binding $parent[ItemsControl].((vm:StepViewModel)DataContext).CanTick}">
+                          <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="{Binding Text}" TextWrapping="Wrap" FontSize="13" VerticalAlignment="Center" />
+                            <Border Classes="chip" IsVisible="{Binding IsOptional}" VerticalAlignment="Center"><TextBlock Text="OPTIONAL" /></Border>
+                          </StackPanel>
+                        </CheckBox>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
+              </Border>
+
               <Border Classes="card" Padding="14,10" IsVisible="{Binding HasWhy}">
                 <StackPanel Spacing="4">
                   <TextBlock Classes="section" Text="WHY" />
@@ -367,7 +389,7 @@
                 <Button Name="StopButton" Command="{Binding StopCommand}" IsVisible="{Binding IsRunning}">
                   <StackPanel><i:Icon Value="fa-solid fa-stop" FontSize="10" /><TextBlock Text="Stop" /></StackPanel>
                 </Button>
-                <Button Name="FinishButton" Classes="accent" Command="{Binding FinishCommand}" IsVisible="{Binding CanFinish}">
+                <Button Name="FinishButton" Classes="accent" Command="{Binding FinishCommand}" IsVisible="{Binding ShowFinish}" IsEnabled="{Binding CanFinish}">
                   <StackPanel><i:Icon Value="fa-solid fa-check" FontSize="10" /><TextBlock Text="{Binding ConfirmText}" /></StackPanel>
                 </Button>
                 <Button Name="NextButton" Classes="accent" Command="{Binding NextCommand}" IsVisible="{Binding CanNext}">
@@ -380,6 +402,8 @@
                   <StackPanel><i:Icon Value="fa-solid fa-rotate-left" FontSize="10" /><TextBlock Text="Reset" /></StackPanel>
                 </Button>
               </StackPanel>
+              <TextBlock Name="ChecklistHint" Classes="muted" FontSize="11.5" IsVisible="{Binding WaitsForChecklist}" TextWrapping="Wrap"
+                         Text="Tick the required checklist items to continue." />
               <TextBlock Classes="muted" FontSize="11.5" IsVisible="{Binding IsBlocked}" TextWrapping="Wrap"
                          Text="Finish or skip the steps before this one first." />
 

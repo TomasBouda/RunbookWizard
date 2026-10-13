@@ -8,7 +8,7 @@ one canonical model that people and AIs can both write: [FORMAT.md](FORMAT.md), 
 ## Components
 - `src/RunbookWizard.Core` (no UI dependency, fully unit tested)
   - `Parsing`: Markdown+YAML or JSON to JsonNode, JSON Schema 2020-12 validation (JsonSchema.Net), typed model, semantic validation. Output: a runbook plus diagnostics.
-  - `Execution`: `VariableStore` (values, secrets, masking), `Template` (`{{Name}}` substitution), `Condition` (`when`), `RiskScanner`, `ShellCatalog`, `FlowPlanner` (the path through the guide from `next`/`onFailure`/`choice`, ADR 0008), `StepPlanner` (exact command, working directory, environment, problems, risks), `ScriptRunner` (child process, streamed output, timeout, cancellation), `StepEvaluation` (verdict and captures).
+  - `Execution`: `VariableStore` (values, secrets, masking), `Template` (`{{Name}}` substitution), `Condition` (`when`), `RiskScanner`, `ShellCatalog`, `FlowPlanner` (the path through the guide from `next`/`onFailure`/`choice`, ADR 0008), `StepPlanner` (exact command, working directory, environment, problems, risks), `ScriptRunner` (child process, streamed output, timeout, cancellation), `StepEvaluation` (verdict and captures), `Checklist` (checkbox items of manual steps, confirm gating, state fingerprint; ADR 0010).
 - `src/RunbookWizard.App` (Avalonia 11, MVVM with CommunityToolkit.Mvvm, compiled bindings)
   - `MainWindowViewModel` (pages Welcome, Overview, Parameters, Step, Logs; ordering and blocking), `StepViewModel` (status, commands, output), `VariableViewModel`, `CommandPaletteViewModel`, `LogsViewModel`.
   - `Services`: `SettingsStore` (JSON settings), `AppLog` (Serilog, daily files plus in-memory ring buffer), `ThemeModes`.
@@ -41,4 +41,4 @@ The app uses `UsePlatformDetectOrHeadless` so the same build runs headless for U
 - No resume after closing the app.
 
 ## Decisions
-See [decisions](decisions/README.md): stack (0001), storage (0002), format (0003), execution and trust (0004), distribution (0005), player behaviour and UI (0006), Markdown and syntax highlighting (0007).
+See [decisions](decisions/README.md): stack (0001), storage (0002), format (0003), execution and trust (0004), distribution (0005), player behaviour and UI (0006), Markdown and syntax highlighting (0007), branching (0008), inline parameters (0009), checklists in manual steps (0010).

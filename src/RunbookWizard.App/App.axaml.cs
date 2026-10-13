@@ -58,7 +58,7 @@ public partial class App : Application
 
     /// <summary>
     /// Scripted UI channel (RUNBOOKWIZARD_AUTOMATION=&lt;port&gt;, see CLAUDE.md) with the player's own shortcuts on top of the
-    /// generic endpoints: <c>/do/page?arg=overview|parameters|logs</c>, <c>/do/open?arg=&lt;path&gt;</c> and <c>/do/select?arg=&lt;step id or number&gt;</c> and <c>/do/choose?arg=&lt;option number or label&gt;</c> (answers the choice step on screen, like clicking its option).
+    /// generic endpoints: <c>/do/page?arg=overview|parameters|logs</c>, <c>/do/open?arg=&lt;path&gt;</c> and <c>/do/select?arg=&lt;step id or number&gt;</c> and <c>/do/choose?arg=&lt;option number or label&gt;</c> (answers the choice step on screen, like clicking its option), <c>/do/tick?arg=&lt;item number|all|none&gt;</c> (toggles checklist items of the selected manual step).
     /// Running a step is not a shortcut: scripts click the Run button like a person does.
     /// </summary>
     private static UiAutomationServer? StartAutomation(IClassicDesktopStyleApplicationLifetime desktop, MainWindowViewModel viewModel)
@@ -90,6 +90,25 @@ public partial class App : Application
                 ?? throw new ArgumentException($"The selected step has no option '{arg}' (use its number or label)");
             option.ChooseCommand.Execute(null);
             return new { chosen = option.Label, selected = viewModel.SelectedStep?.Id };
+        };
+        server.Actions["tick"] = (window, arg) =>
+        {
+            var step = viewModel.SelectedStep ?? throw new InvalidOperationException("No step is selected");
+            if (!step.CanTick)
+                throw new InvalidOperationException("The selected step has no checklist that can be changed now");
+            if (string.Equals(arg, "all", StringComparison.OrdinalIgnoreCase) || string.Equals(arg, "none", StringComparison.OrdinalIgnoreCase))
+            {
+                foreach (var item in step.ChecklistItems)
+                    item.IsChecked = string.Equals(arg, "all", StringComparison.OrdinalIgnoreCase);
+            }
+            else
+            {
+                var item = int.TryParse(arg, out var n) && n >= 1 && n <= step.ChecklistItems.Count
+                    ? step.ChecklistItems[n - 1]
+                    : throw new ArgumentException($"The selected step has no checklist item '{arg}' (use its number, 'all' or 'none')");
+                item.IsChecked = !item.IsChecked;
+            }
+            return new { ticked = step.ChecklistItems.Count(i => i.IsChecked), complete = step.ChecklistComplete };
         };
         return server;
     }
