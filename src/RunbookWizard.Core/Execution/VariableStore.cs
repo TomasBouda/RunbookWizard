@@ -102,6 +102,19 @@ public sealed class VariableStore
             .ToList();
     }
 
+    /// <summary>Replaces the value of every secret variable in a piece of text (script output, log lines) by the mask.</summary>
+    public string MaskSecrets(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+            return text;
+        foreach (var (name, value) in _values)
+        {
+            if (value.Length > 0 && IsSecret(name))
+                text = text.Replace(value, Mask, StringComparison.Ordinal);
+        }
+        return text;
+    }
+
     /// <summary>The environment the process gets: <c>RUNBOOK_VAR_&lt;name&gt;</c> for every variable that has a value.</summary>
     public Dictionary<string, string> ToEnvironment()
     {
