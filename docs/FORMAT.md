@@ -87,7 +87,7 @@ slug gets `-2`, `-3`).
 |---|---|---|---|
 | `id` | string `[a-z0-9-]` | slug of title | Stable identifier (used by `when`, logs, references). |
 | `title` | string | (heading) | Short imperative name. |
-| `type` | `info` / `manual` / `script` | inferred | `info` is read only; `manual` the person does something and confirms; `script` has a Run button. |
+| `type` | `info` / `manual` / `script` / `choice` | inferred | `info` is read only; `manual` the person does something and confirms; `script` has a Run button; `choice` asks the person to pick a way (section 5.1). |
 | `description` | Markdown | | What to do. |
 | `why` | Markdown | | Why it is needed; what an error here usually means. |
 | `confirm` | string | "Done" | `manual` only: the sentence the person confirms ("I have restarted the machine"). |
@@ -103,6 +103,9 @@ slug gets `-2`, `-3`).
 | `success` | object | exit code 0 | `exitCodes: [0, 3010]`, `outputMatches: regex`, `outputNotMatches: regex`. All given rules must hold. |
 | `captures` | list | | After a run, `{ variable: Name, pattern: regex }` stores output text into a variable for later steps. |
 | `continueOnFailure` | bool | false | A failed step does not block the steps after it. |
+| `next` | step id | the following step | Jump target after the step succeeded or was skipped (section 5.1). Ignored (warning) on a `choice`. |
+| `onFailure` | step id | | Jump target when the step failed; the steps in between are skipped (section 5.1). |
+| `options` | list | | `choice` only, at least two: `{ label, goto, description? }`; `goto` is the id of the step that follows. |
 
 ## 4. Variables, substitution, conditions
 
@@ -161,7 +164,32 @@ Examples: `{{os}} == windows`, `{{Mode}} == 'prod' && {{Backup}}`, `!{{SkipTls}}
 - Success: exit code in `success.exitCodes` (default `[0]`), `outputMatches` found, `outputNotMatches` absent.
   The player reports which rule decided.
 - Statuses: pending, running, done, failed, skipped. A failed step offers Retry and Skip; later steps stay available
-  only if `continueOnFailure` is set or the person skips the failed one.
+  only if `continueOnFailure` is set, the step has an `onFailure` route or the person skips the failed one.
+
+### 5.1 Branching
+
+Without `next`, `onFailure` and `choice` a guide is a straight line, exactly as before. Branching is derived, never
+stored: the path through the guide is computed from the statuses of the steps.
+
+- A step that is done or skipped continues at its `next`, else at the following step.
+- A `choice` step is done when the person picked an option; the guide continues at that option's `goto`. Picking another
+  option later (or Reset) re-routes the path.
+- A failed step continues at its `onFailure`; without it, with `continueOnFailure` at `next`/the following step; otherwise
+  it blocks (Retry or Skip).
+- A step that cannot be reached any more on the current path is shown as skipped ("skipped by branch"). It is reversible:
+  when the path changes it is offered again. A step skipped by `when` stays skipped by its condition.
+- Targets are step ids. Jumps may go forward or back, but a path that leads back to a step it already visited (a loop) is a
+  validation error; retry covers repeating a step. `next`/`onFailure`/`goto` naming an unknown id is a validation error.
+- Captured values are checked in file order: a step may only use a capture defined by an earlier step in the file.
+- `when` keeps working and combines with branching: a step whose condition is false is skipped and the path continues
+  at its `next`.
+
+### 5.2 Parameters in the command
+
+The command preview shows every `{{Name}}` of a declared variable as an editable field inside the highlighted command;
+the rest of the command is read only. It edits the same value as the Parameters page. Type, default, choices, `pattern`
+and the secret flag come from the variable declaration (a secret is entered masked and stays masked). Nothing about the
+format changes: authors write `{{Name}}` as before. `\{{Name}}` is shown literally.
 
 ## 6. Canonical model (JSON)
 
@@ -194,7 +222,8 @@ Two layers; the player shows the findings with their path (`steps[3].success.out
 1. **Schema** (structure, types, enums, required fields).
 2. **Semantic checks** (errors unless marked warning): duplicate step ids; `{{Name}}` that is undefined; a variable
    used before a step captured it; invalid regular expression in `pattern`, `success`, `captures`; malformed `when`;
-   `when` referring to an unknown variable; `choice` default not among the choices; an unknown field anywhere (also
+   `when` referring to an unknown variable; `next`, `onFailure` or an option `goto` naming an unknown step; a loop; a
+   `choice` with fewer than two options or a duplicate option label; `options` on a step that is not a `choice`; `choice` default not among the choices; an unknown field anywhere (also
    in the frontmatter, never silently ignored); a script step without script.
    Warnings: a script the risk scanner finds potentially destructive but that is not marked `destructive`; a
    `destructive` step without a `warning`.
@@ -215,7 +244,8 @@ Write a `.runbook.md` file. Checklist:
 6. Use `type: manual` for things a script cannot do (sign in to a portal, reboot, approve a prompt).
 7. Scripts must be non-interactive, idempotent where possible, and print what they did.
 8. Secrets are `type: secret` variables read from `$env:RUNBOOK_VAR_<Name>`, never `{{Name}}` in the script text.
-9. Use exact commands, not "something like"; if it depends on the OS or a variable use `when`.
+9. Use `type: choice` for a real decision, `onFailure` for a recovery step, and `next` on the last step of each path. See `examples/branching-deploy.runbook.md`.
+10. Use exact commands, not "something like"; if it depends on the OS or a variable use `when`.
 10. Never include commands to download-and-execute unknown code (`iwr ... | iex`); the reader sees every command first.
 
 Minimal template:

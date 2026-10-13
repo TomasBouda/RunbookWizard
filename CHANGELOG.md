@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Added: branching in guides. A `choice` step lets the reader pick a way; `next` and `onFailure` jump to another step; steps on a path not taken show as skipped. Unknown targets and loops are rejected when the guide opens.
+- Added: parameters inside the command. The `{{Name}}` placeholders in the command preview are fields you edit right there (masked for secrets); they share the value with the Parameters page.
+- Added: the example guide `docs/examples/branching-deploy.runbook.md`.
 - Added: Markdown in step descriptions, "why" and info text is rendered (bold, italic, code, lists, links, headings, fenced code).
 - Added: syntax highlighting for the command preview (PowerShell, bash, cmd) and for fenced code blocks, in light and dark.
 

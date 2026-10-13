@@ -12,3 +12,5 @@ a new record that supersedes the old one. Current shape of the system: [../ARCHI
 | [0005](0005-distribution.md) | Distribution through TomLabs.AutoUpdate and the app store | proposed |
 | [0006](0006-player-behaviour-and-ui.md) | Player behaviour and UI: ordered blocking steps, double confirmation for destructive, ops-console style | accepted |
 | [0007](0007-markdown-and-syntax-highlighting.md) | Markdown rendering (Markdown.Avalonia) and syntax highlighting (AvaloniaEdit + own bash/batch grammars) | accepted |
+| [0008](0008-branching-in-guides.md) | Branching in guides: `choice`, `next`, `onFailure`, derived path, no loops | accepted |
+| [0009](0009-inline-parameters.md) | Parameters inside the command: fields as AvaloniaEdit inline objects | accepted |
