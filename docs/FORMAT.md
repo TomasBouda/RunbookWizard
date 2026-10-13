@@ -127,7 +127,8 @@ are masked in the UI, in the command preview and in logs and are never saved.
 
 `{{Name}}` in `script`, `workingDirectory` and `env` values is replaced by the variable's value **as plain text, with no
 quoting or escaping** - validate with `pattern` or write the quotes yourself (`'{{SiteName}}'` in PowerShell).
-`\{{Name}}` stays literal `{{Name}}`. Every variable (also secrets) is additionally available to the process as the
+`{{!Name}}` stays literal `{{Name}}`. A backslash in front of a placeholder is only a path separator
+(`IIS:\AppPools\{{SiteName}}` and `\\server\{{Share}}` work; `\{{Name}}` was the escape in earlier versions, ADR 0012). Every variable (also secrets) is additionally available to the process as the
 environment variable `RUNBOOK_VAR_<Name>` (PowerShell: `$env:RUNBOOK_VAR_SiteName`); **prefer that for secrets** so the
 value is never part of the script text.
 
@@ -189,7 +190,7 @@ stored: the path through the guide is computed from the statuses of the steps.
 The command preview shows every `{{Name}}` of a declared variable as an editable field inside the highlighted command;
 the rest of the command is read only. It edits the same value as the Parameters page. Type, default, choices, `pattern`
 and the secret flag come from the variable declaration (a secret is entered masked and stays masked). Nothing about the
-format changes: authors write `{{Name}}` as before. `\{{Name}}` is shown literally.
+format changes: authors write `{{Name}}` as before. `{{!Name}}` is shown literally as `{{Name}}`.
 
 ### 5.3 Checklists in manual steps
 

@@ -188,7 +188,7 @@ public class ParserTests
     [Fact]
     public void Escaped_placeholders_are_not_references()
     {
-        var result = RunbookParser.Parse("---\nrunbook: 1\ntitle: T\n---\n## A\n```powershell\necho \\{{Literal}}\n```\n");
+        var result = RunbookParser.Parse("---\nrunbook: 1\ntitle: T\n---\n## A\n```powershell\necho {{!Literal}}\n```\n");
         Assert.True(result.IsRunnable, string.Join("\n", result.Diagnostics));
     }
 }

@@ -19,7 +19,7 @@ public class InlineParameterTests
         ---
         ## Use them
         ```powershell
-        deploy --site '{{Site}}' --port {{Port}} --token {{Token}} --os {{os}} --again '{{Site}}' --literal \{{Site}}
+        deploy --site '{{Site}}' --port {{Port}} --token {{Token}} --os {{os}} --again '{{Site}}' --literal {{!Site}} --path C:\inetpub\{{Site}}
         ```
         """;
 
@@ -49,8 +49,31 @@ public class InlineParameterTests
         var (rb, vars) = Load();
         var plan = StepPlanner.Plan(rb, rb.Steps[0], vars);
 
-        Assert.EndsWith(@"--literal \{{Site}}", plan.InlineScript);
-        Assert.EndsWith("--literal {{Site}}", plan.Script);
+        Assert.Contains("--literal {{!Site}} ", plan.InlineScript);
+        Assert.Contains("--literal {{Site}} ", plan.Script);
+    }
+
+    // Regression: `\{{Name}}` used to be the escape, so a placeholder right after a path backslash ("IIS:\AppPools\{{SiteName}}")
+    // lost the backslash and was never substituted. A backslash is only a path separator now (ADR 0012).
+    [Fact]
+    public void A_placeholder_after_a_backslash_is_substituted_and_stays_an_inline_field()
+    {
+        var (rb, vars) = Load();
+        var plan = StepPlanner.Plan(rb, rb.Steps[0], vars);
+
+        Assert.Contains(@"--path C:\inetpub\demo", plan.Script);
+        Assert.EndsWith(@"--path C:\inetpub\{{Site}}", plan.InlineScript);
+        Assert.EndsWith(@"--path C:\inetpub\demo", plan.MaskedScript);
+    }
+
+    [Fact]
+    public void Template_substitutes_after_backslashes_and_unc_prefixes()
+    {
+        string? Lookup(string n) => n == "X" ? "v" : null;
+        Assert.Equal(@"IIS:\AppPools\v \\srv\v", Template.Render(@"IIS:\AppPools\{{X}} \\srv\{{X}}", Lookup, out var missing));
+        Assert.Empty(missing);
+        Assert.Equal(new[] { "X" }, Template.References(@"IIS:\AppPools\{{X}}"));
+        Assert.Equal("{{X}}", Template.Render("{{!X}}", Lookup, out _));
     }
 
     [Fact]
@@ -97,7 +120,7 @@ public class InlineParameterTests
     [Fact]
     public void RenderInline_leaves_unknown_names_as_written()
     {
-        var text = Template.RenderInline("{{A}} {{B}} {{C}} \\{{A}}", name => name == "A", name => name == "B" ? "b" : null);
-        Assert.Equal("{{A}} b {{C}} \\{{A}}", text);
+        var text = Template.RenderInline("{{A}} {{B}} {{C}} {{!A}} \\{{A}}", name => name == "A", name => name == "B" ? "b" : null);
+        Assert.Equal("{{A}} b {{C}} {{!A}} \\{{A}}", text);
     }
 }

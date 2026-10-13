@@ -10,7 +10,7 @@ public class TemplateTests
     [Fact]
     public void Render_substitutes_escapes_and_reports_missing()
     {
-        var text = Template.Render(@"a {{X}} b {{ Y }} c \{{X}} d {{Z}}", n => n switch { "X" => "1", "Y" => "2", _ => null }, out var missing);
+        var text = Template.Render(@"a {{X}} b {{ Y }} c {{!X}} d {{Z}}", n => n switch { "X" => "1", "Y" => "2", _ => null }, out var missing);
 
         Assert.Equal("a 1 b 2 c {{X}} d {{Z}}", text);
         Assert.Equal(new[] { "Z" }, missing);
@@ -19,7 +19,7 @@ public class TemplateTests
     [Fact]
     public void References_ignores_escaped_and_duplicates()
     {
-        Assert.Equal(new[] { "A", "B" }, Template.References(@"{{A}} {{B}} {{A}} \{{C}}"));
+        Assert.Equal(new[] { "A", "B" }, Template.References(@"{{A}} {{B}} {{A}} {{!C}}"));
     }
 }
 

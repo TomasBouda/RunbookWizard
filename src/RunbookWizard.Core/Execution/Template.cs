@@ -3,12 +3,12 @@ using System.Text.RegularExpressions;
 namespace RunbookWizard.Core.Execution;
 
 /// <summary>
-/// <c>{{Name}}</c> substitution. <c>\{{Name}}</c> is a literal. Values are inserted as plain text without quoting
+/// <c>{{Name}}</c> substitution. <c>{{!Name}}</c> is a literal <c>{{Name}}</c> (a backslash in front of a placeholder is only a path separator, ADR 0012). Values are inserted as plain text without quoting
 /// or escaping (the format says so, see docs/FORMAT.md section 4.2).
 /// </summary>
 public static partial class Template
 {
-    [GeneratedRegex(@"(?<esc>\\)?\{\{\s*(?<name>[A-Za-z_][A-Za-z0-9_]*)\s*\}\}")]
+    [GeneratedRegex(@"\{\{(?<esc>!)?\s*(?<name>[A-Za-z_][A-Za-z0-9_]*)\s*\}\}")]
     private static partial Regex Placeholder();
 
     /// <summary>Names of the variables a text refers to (escaped placeholders excluded), in order of appearance, without duplicates.</summary>
@@ -52,7 +52,7 @@ public static partial class Template
         return Placeholder().Replace(text, m =>
         {
             if (m.Groups["esc"].Success)
-                return m.Value[1..];
+                return m.Value.Remove(2, 1);
             var name = m.Groups["name"].Value;
             var value = lookup(name);
             if (value is null)

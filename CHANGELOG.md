@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Fixed: a `{{Name}}` placeholder right after a backslash (`IIS:\AppPools\{{SiteName}}`, `C:\{{Folder}}`) was not substituted and lost the backslash in the executed command. A backslash is now only a path separator.
+- Changed: the escape for a literal `{{Name}}` is now `{{!Name}}` (was `\{{Name}}`).
+
 - Added: Apache-2.0 license (`LICENSE`), declared in the README and in the build properties.
 - Added: checklists in manual steps. Write `- [ ] item` lines in the step text and the player shows checkboxes; the confirm button stays disabled until every required item is ticked. Start an item with `(optional)` to let it stay unticked.
 - Added: the example guide `docs/examples/checklist-handover.runbook.md`.

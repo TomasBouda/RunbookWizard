@@ -14,12 +14,12 @@ namespace RunbookWizard.App.Controls;
 
 /// <summary>
 /// Turns the <c>{{Name}}</c> placeholders of the command in a <see cref="CodeView"/> into input fields inside the text: the rest of the
-/// command stays read-only and highlighted. <c>\{{Name}}</c> (an escaped placeholder) is shown as the literal <c>{{Name}}</c>.
+/// command stays read-only and highlighted. <c>{{!Name}}</c> (an escaped placeholder) is shown as the literal <c>{{Name}}</c>.
 /// Only names the view was given a parameter for become fields.
 /// </summary>
 internal sealed partial class ParameterElementGenerator : VisualLineElementGenerator
 {
-    [GeneratedRegex(@"(?<esc>\\)?\{\{\s*(?<name>[A-Za-z_][A-Za-z0-9_]*)\s*\}\}")]
+    [GeneratedRegex(@"\{\{(?<esc>!)?\s*(?<name>[A-Za-z_][A-Za-z0-9_]*)\s*\}\}")]
     private static partial Regex Placeholder();
 
     private readonly Func<IReadOnlyDictionary<string, VariableViewModel>?> _parameters;
@@ -57,7 +57,7 @@ internal sealed partial class ParameterElementGenerator : VisualLineElementGener
             return null;
 
         if (match.Groups["esc"].Success)
-            return new FormattedTextElement(match.Value[1..], match.Length);
+            return new FormattedTextElement(match.Value.Remove(2, 1), match.Length);
         return parameters.TryGetValue(match.Groups["name"].Value, out var parameter)
             ? new InlineObjectElement(match.Length, ParameterField.Create(parameter))
             : null;
