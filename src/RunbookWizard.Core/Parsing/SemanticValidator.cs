@@ -62,6 +62,10 @@ public static class SemanticValidator
             }
             if (type != StepType.Manual && step.Confirm is not null)
                 result.Add(Warning($"{path}.confirm", "'confirm' only applies to manual steps."));
+            if (type != StepType.Manual && Checklist.Parse(step.Description).HasItems)
+                result.Add(Warning($"{path}.description", $"The checklist ('- [ ] item') only works in a manual step; in a {type.ToString().ToLowerInvariant()} step it is shown as plain text."));
+            if (type == StepType.Manual && Checklist.Parse(step.Description) is { HasItems: true } checklist && checklist.Items.All(i => !i.Required))
+                result.Add(Warning($"{path}.description", "Every checklist item is marked (optional), so the checklist does not block the step."));
 
             CheckReferences(step.Script, $"{path}.script", declared, capturedBefore, capturedAnywhere, result);
             CheckReferences(step.WorkingDirectory, $"{path}.workingDirectory", declared, capturedBefore, capturedAnywhere, result);
