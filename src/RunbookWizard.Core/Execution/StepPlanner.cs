@@ -10,6 +10,7 @@ public sealed record StepPlan(
     ShellKind Shell,
     string Script,
     string MaskedScript,
+    string InlineScript,
     string? WorkingDirectory,
     IReadOnlyDictionary<string, string> Environment,
     TimeSpan Timeout,
@@ -59,6 +60,7 @@ public static class StepPlanner
             problems.Add($"The shell '{shell.ToString().ToLowerInvariant()}' is not installed on this machine.");
 
         var timeout = step.TimeoutSeconds is > 0 ? TimeSpan.FromSeconds(step.TimeoutSeconds.Value) : DefaultTimeout;
-        return new StepPlan(shell, script, masked, directory, environment, timeout, problems, RiskScanner.Scan(script));
+        var inline = Template.RenderInline(step.Script, variables.IsDeclared, variables.ResolveMasked);
+        return new StepPlan(shell, script, masked, inline, directory, environment, timeout, problems, RiskScanner.Scan(script));
     }
 }

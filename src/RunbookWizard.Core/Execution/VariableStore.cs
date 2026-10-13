@@ -34,6 +34,8 @@ public sealed class VariableStore
 
     public IEnumerable<Variable> Declared => _declared.Values;
 
+    public bool IsDeclared(string name) => _declared.ContainsKey(name);
+
     public bool IsSecret(string name) => _declared.TryGetValue(name, out var v) && v.Type == VariableType.Secret;
 
     public void Set(string name, string? value)

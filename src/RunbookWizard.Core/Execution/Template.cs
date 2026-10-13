@@ -23,6 +23,24 @@ public static partial class Template
             .ToList();
     }
 
+    /// <summary>
+    /// The text for the editable command view: placeholders of the names for which <paramref name="isEditable"/> is true, and
+    /// escaped placeholders, stay as written (the view turns the first into input fields and shows the second literally);
+    /// all other placeholders are replaced by <paramref name="lookup"/> (unresolved ones stay as written).
+    /// </summary>
+    public static string RenderInline(string? text, Func<string, bool> isEditable, Func<string, string?> lookup)
+    {
+        if (string.IsNullOrEmpty(text))
+            return text ?? string.Empty;
+        return Placeholder().Replace(text, m =>
+        {
+            if (m.Groups["esc"].Success)
+                return m.Value;
+            var name = m.Groups["name"].Value;
+            return isEditable(name) ? m.Value : lookup(name) ?? m.Value;
+        });
+    }
+
     /// <summary>Replaces placeholders using <paramref name="lookup"/>; names it cannot resolve stay as written and are reported.</summary>
     public static string Render(string? text, Func<string, string?> lookup, out IReadOnlyList<string> missing)
     {

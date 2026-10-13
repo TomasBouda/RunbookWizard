@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace RunbookWizard.Core.Model;
 
-public enum StepType { Info, Manual, Script }
+public enum StepType { Info, Manual, Script, Choice }
 
 /// <summary>Shell names of the format. <c>Powershell</c> prefers PowerShell 7 and falls back to Windows PowerShell.</summary>
 public enum ShellKind { Powershell, Pwsh, Winps, Bash, Sh, Cmd }
@@ -47,6 +47,17 @@ public sealed class Capture
     public string Pattern { get; init; } = string.Empty;
 }
 
+/// <summary>One answer of a <c>choice</c> step and the step it leads to.</summary>
+public sealed class ChoiceOption
+{
+    public string Label { get; init; } = string.Empty;
+
+    /// <summary>The id of the step that comes next when this option is chosen.</summary>
+    public string Goto { get; init; } = string.Empty;
+
+    public string? Description { get; init; }
+}
+
 public sealed class Step
 {
     public string Id { get; set; } = string.Empty;
@@ -68,9 +79,18 @@ public sealed class Step
     public List<Capture> Captures { get; init; } = new();
     public bool ContinueOnFailure { get; init; }
 
-    /// <summary>The effective type: explicit, else script when a script is present, else info.</summary>
+    /// <summary>Step id to continue with after this step succeeded (or was skipped); default: the following step.</summary>
+    public string? Next { get; init; }
+
+    /// <summary>Step id to continue with when this step fails, in addition to Retry and Skip.</summary>
+    public string? OnFailure { get; init; }
+
+    /// <summary>The answers of a <c>choice</c> step.</summary>
+    public List<ChoiceOption> Options { get; init; } = new();
+
+    /// <summary>The effective type: explicit, else choice when options are present, script when a script is present, else info.</summary>
     [JsonIgnore]
-    public StepType EffectiveType => Type ?? (string.IsNullOrWhiteSpace(Script) ? StepType.Info : StepType.Script);
+    public StepType EffectiveType => Type ?? (Options.Count > 0 ? StepType.Choice : string.IsNullOrWhiteSpace(Script) ? StepType.Info : StepType.Script);
 }
 
 public sealed class Runbook

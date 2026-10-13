@@ -26,6 +26,17 @@
   "$defs": {
     "shell": { "enum": ["powershell", "pwsh", "winps", "bash", "sh", "cmd"] },
     "identifier": { "type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$" },
+    "stepId": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+    "option": {
+      "type": "object",
+      "required": ["label", "goto"],
+      "additionalProperties": false,
+      "properties": {
+        "label": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "goto": { "$ref": "#/$defs/stepId", "description": "Id of the step that comes next when this option is picked." },
+        "description": { "type": "string", "description": "One line explaining the option." }
+      }
+    },
     "variable": {
       "type": "object",
       "required": ["name"],
@@ -68,7 +79,7 @@
       "properties": {
         "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$", "description": "Stable identifier; derived from the title when omitted." },
         "title": { "type": "string", "minLength": 1, "maxLength": 200 },
-        "type": { "enum": ["info", "manual", "script"], "description": "Inferred as script when a script is present, else info." },
+        "type": { "enum": ["info", "manual", "script", "choice"], "description": "Inferred as choice when options are present, as script when a script is present, else info." },
         "description": { "type": "string", "description": "What to do / what happens (Markdown)." },
         "why": { "type": "string", "description": "Why this step exists and what goes wrong without it (Markdown)." },
         "confirm": { "type": "string", "description": "Manual steps: the statement the person confirms, e.g. 'I have rebooted'." },
@@ -83,7 +94,10 @@
         "when": { "type": "string", "description": "Condition; the step is offered only when it holds, else it is skipped." },
         "success": { "$ref": "#/$defs/success" },
         "captures": { "type": "array", "items": { "$ref": "#/$defs/capture" } },
-        "continueOnFailure": { "type": "boolean", "default": false, "description": "A failure of this step does not block the following steps." }
+        "continueOnFailure": { "type": "boolean", "default": false, "description": "A failure of this step does not block the following steps." },
+        "next": { "$ref": "#/$defs/stepId", "description": "Id of the step to continue with after this step succeeded or was skipped. Default: the following step." },
+        "onFailure": { "$ref": "#/$defs/stepId", "description": "Id of the step to continue with when this step fails (Retry and Skip stay available)." },
+        "options": { "type": "array", "minItems": 2, "items": { "$ref": "#/$defs/option" }, "description": "Choice steps: the answers the person can pick, each leading to a step." }
       },
       "allOf": [
         {
@@ -91,8 +105,16 @@
           "then": { "required": ["script"] }
         },
         {
-          "if": { "properties": { "type": { "enum": ["info", "manual"] } }, "required": ["type"] },
+          "if": { "properties": { "type": { "enum": ["info", "manual", "choice"] } }, "required": ["type"] },
           "then": { "not": { "required": ["script"] } }
+        },
+        {
+          "if": { "properties": { "type": { "const": "choice" } }, "required": ["type"] },
+          "then": { "required": ["options"] }
+        },
+        {
+          "if": { "properties": { "type": { "enum": ["info", "manual", "script"] } }, "required": ["type"] },
+          "then": { "not": { "required": ["options"] } }
         }
       ]
     }
