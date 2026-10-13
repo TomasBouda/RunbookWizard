@@ -1,0 +1,34 @@
+name: Build
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    if: github.event_name == 'pull_request'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - run: dotnet test RunbookWizard.slnx -c Release
+
+  # Every push to master refreshes the "nightly" pre-release (zips + update.json for the in-app updater).
+  nightly:
+    if: github.event_name == 'push'
+    uses: TomasBouda/TomLabs.AutoUpdate/.github/workflows/publish-app.yml@master
+    with:
+      project: src/RunbookWizard.App/RunbookWizard.App.csproj
+      app-name: RunbookWizard
+      channel: nightly
+      dotnet-version: '10.0.x'
+      submodules: false
+    secrets:
+      signing-key: ${{ secrets.UPDATE_SIGNING_KEY }}

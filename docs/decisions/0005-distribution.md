@@ -1,6 +1,6 @@
 # 0005 Distribution through TomLabs.AutoUpdate and the app store
 
-- **Status:** proposed
+- **Status:** superseded by [0014](0014-github-releases-distribution.md)
 - **Date:** 2026-10-13
 
 ## Context

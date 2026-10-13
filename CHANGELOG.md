@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.2.0 — 2026-10-13
+
+- Added: the player updates itself from GitHub Releases (stable and nightly channels, signed manifests, update banner, "Check for updates" in the command palette).
 
 - Added: steps marked `elevated` no longer fail confusingly when the player is not run as administrator. A banner explains it, Run is disabled for such a step with the reason (Skip still works), and "Restart as administrator" reopens the player with the same guide through the Windows administrator prompt. Entered values are not carried over.
 

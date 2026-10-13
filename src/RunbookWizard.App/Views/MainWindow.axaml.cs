@@ -21,6 +21,9 @@ public partial class MainWindow : Window
                 vm.PickGuide = PickGuideAsync;
         };
 
+        // The window is up: a freshly installed update may drop its rollback backup.
+        Opened += (_, _) => TomLabs.AutoUpdate.Updater.Current?.MarkHealthy();
+
         AddHandler(KeyDownEvent, OnPreviewKeyDown, RoutingStrategies.Tunnel);
         PaletteList.PointerReleased += OnPaletteItemPointerReleased;
         OutputScroll.ScrollChanged += (_, e) =>

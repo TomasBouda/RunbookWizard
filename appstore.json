@@ -1,0 +1,8 @@
+{
+  "displayName": "RunbookWizard",
+  "tagline": "Step-by-step player for runbooks: guides in Markdown or JSON with exact commands, checks and parameters",
+  "tags": ["windows", "runbook", "avalonia", "dotnet", "ops"],
+  "audience": "Public",
+  "repoUrl": "https://github.com/TomasBouda/RunbookWizard",
+  "homepage": "https://github.com/TomasBouda/RunbookWizard"
+}

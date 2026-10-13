@@ -41,4 +41,4 @@ The app uses `UsePlatformDetectOrHeadless` so the same build runs headless for U
 - No resume after closing the app.
 
 ## Decisions
-See [decisions](decisions/README.md): stack (0001), storage (0002), format (0003), execution and trust (0004), distribution (0005), player behaviour and UI (0006), Markdown and syntax highlighting (0007), branching (0008), inline parameters (0009), checklists in manual steps (0010), license (0011), placeholder escape (0012), elevation handling (0013).
+See [decisions](decisions/README.md): stack (0001), storage (0002), format (0003), execution and trust (0004), distribution (0005), player behaviour and UI (0006), Markdown and syntax highlighting (0007), branching (0008), inline parameters (0009), checklists in manual steps (0010), license (0011), placeholder escape (0012), elevation handling (0013), GitHub Releases distribution and self-update (0014, supersedes 0005).

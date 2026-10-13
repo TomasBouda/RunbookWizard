@@ -128,22 +128,28 @@ public partial class App : Application
     }
 
     /// <summary>
-    /// Self-update through TomLabs.AutoUpdate. It reads a latest.json manifest (settings.json "updateManifestUrl", or
-    /// RUNBOOKWIZARD_UPDATE_MANIFEST); without a manifest the updater stays off (ADR 0005).
+    /// Self-update from GitHub Releases (ADR 0014): nightly builds follow the nightly pre-release, releases follow stable.
+    /// A test manifest can replace GitHub (settings.json "updateManifestUrl" or RUNBOOKWIZARD_UPDATE_MANIFEST), and
+    /// RUNBOOKWIZARD_NO_UPDATE=1 switches the updater off. From <c>dotnet run</c> or a dev build the library itself
+    /// refuses to apply anything, and offline or failing checks stay silent.
     /// </summary>
     private static void StartUpdater(IClassicDesktopStyleApplicationLifetime desktop, SettingsStore store)
     {
+        if (Environment.GetEnvironmentVariable("RUNBOOKWIZARD_NO_UPDATE") is "1" or "true")
+        {
+            AppLog.For("update").Debug("RUNBOOKWIZARD_NO_UPDATE is set; self-update is off");
+            return;
+        }
+
         var settings = store.Load();
         var manifest = Environment.GetEnvironmentVariable("RUNBOOKWIZARD_UPDATE_MANIFEST");
         if (string.IsNullOrWhiteSpace(manifest))
             manifest = settings.UpdateManifestUrl;
-        if (!Uri.TryCreate(manifest, UriKind.Absolute, out var manifestUri))
-        {
-            AppLog.For("update").Debug("No update manifest configured; self-update is off");
-            return;
-        }
+        IUpdateSource source = Uri.TryCreate(manifest, UriKind.Absolute, out var manifestUri)
+            ? new ManifestSource(manifestUri)
+            : new GitHubReleasesSource("TomasBouda", "RunbookWizard");
 
-        Updater.Start(new UpdateOptions("RunbookWizard", new ManifestSource(manifestUri))
+        Updater.Start(new UpdateOptions("RunbookWizard", source)
         {
             Channel = Enum.TryParse<UpdateChannel>(settings.UpdateChannel, out var channel) ? channel : null,
             ChannelChanged = ch =>
@@ -153,6 +159,13 @@ public partial class App : Application
                 store.Save(s);
             },
             ExitApplication = () => desktop.Shutdown(),
+            // Manifests must be signed by the CI key (UPDATE_SIGNING_KEY secret); this is the matching public key.
+            PublicKeyPem = """
+                -----BEGIN PUBLIC KEY-----
+                MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEbn/vAmbtOEEye1PEW6EidWSWmvr6
+                tF6BCHFmSiJtDUZ2On6TuR7wJsphrPZzDuCWOHtNat7saN42obrUCYmcsA==
+                -----END PUBLIC KEY-----
+                """,
             Log = message => AppLog.For("update").Information("{Message}", message),
         });
     }
