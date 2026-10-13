@@ -10,3 +10,4 @@ a new record that supersedes the old one. Current shape of the system: [../ARCHI
 | [0003](0003-guide-format.md) | One guide format: Markdown + YAML frontmatter or JSON, one canonical model, JSON Schema | accepted |
 | [0004](0004-execution-model-and-trust.md) | Execution model: nothing runs without a click, exact command shown, guides are untrusted | accepted |
 | [0005](0005-distribution.md) | Distribution through TomLabs.AutoUpdate and the app store | proposed |
+| [0006](0006-player-behaviour-and-ui.md) | Player behaviour and UI: ordered blocking steps, double confirmation for destructive, ops-console style | accepted |
