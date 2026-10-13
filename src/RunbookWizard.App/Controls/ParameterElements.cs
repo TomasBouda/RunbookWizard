@@ -4,6 +4,8 @@ using System.Text.RegularExpressions;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Data;
+using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Media;
 using AvaloniaEdit.Rendering;
 using RunbookWizard.App.ViewModels;
@@ -73,10 +75,19 @@ internal static class ParameterField
         Control field = parameter.IsChoice ? CreateChoice(parameter) : CreateText(parameter);
         field.Name = "Param_" + parameter.Name;
         field.VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center;
-        field.Margin = new Thickness(1, 0);
+        field.Margin = new Thickness(1, 0, 1, 4);
         field.Classes.Add("param");
         field.Classes.Set("invalid", parameter.HasError);
         ToolTip.SetTip(field, TipOf(parameter));
+
+        // The editor behind the field starts a text selection (and takes the focus) on a press; a press on the field is the field's own.
+        field.AddHandler(InputElement.PointerPressedEvent, (_, e) =>
+        {
+            Avalonia.Threading.Dispatcher.UIThread.Post(() => field.Focus(), Avalonia.Threading.DispatcherPriority.Background);
+        }, RoutingStrategies.Bubble, handledEventsToo: true);
+
+        // The editor's TextArea takes the focus back when a GotFocus bubbles up to it; keep the event with the field.
+        field.GotFocus += (_, e) => e.Handled = true;
 
         // Show validation as it changes; unhook when the line is rebuilt and the field leaves the tree.
         void OnChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)

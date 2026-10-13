@@ -126,7 +126,7 @@
     </Style>
     <Style Selector="ComboBox.param">
         <Setter Property="MinHeight" Value="0"/>
-        <Setter Property="Height" Value="22"/>
+        <Setter Property="Height" Value="20"/>
         <Setter Property="Padding" Value="6,0"/>
         <Setter Property="CornerRadius" Value="3"/>
         <Setter Property="FontFamily" Value="{StaticResource MonoFont}"/>
