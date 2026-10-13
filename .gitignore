@@ -1,0 +1,24 @@
+# Build results
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+publish/
+
+# User-specific files
+*.user
+*.suo
+*.rsuser
+.vs/
+.idea/
+*.swp
+
+# Test results
+TestResults/
+
+# Output of tomlabs-ui start (UI automation build)
+.ui-build/
+
+# Runtime data of a developer machine
+settings.local.json
+*.runlog.md

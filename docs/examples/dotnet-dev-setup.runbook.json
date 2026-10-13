@@ -1,0 +1,85 @@
+{
+  "runbook": 1,
+  "title": "Set up a .NET development machine",
+  "description": "Checks for the .NET SDK and Git, installs what is missing with winget and verifies the result. Written in the JSON form of the format.",
+  "version": "1.0",
+  "platforms": ["windows"],
+  "tags": ["dotnet", "setup"],
+  "shell": "powershell",
+  "variables": [
+    { "name": "SdkChannel", "label": "SDK major version", "type": "choice", "choices": ["8", "9", "10"], "default": "10", "required": true },
+    { "name": "InstallGit", "label": "Install Git if missing", "type": "bool", "default": true }
+  ],
+  "steps": [
+    {
+      "id": "overview",
+      "title": "What this guide does",
+      "type": "info",
+      "description": "It looks at what is installed, installs the missing tools with winget (you see every command first) and checks the result.",
+      "why": "Nothing is installed without a click and you can skip any step."
+    },
+    {
+      "id": "check-winget",
+      "title": "Check that winget is available",
+      "type": "script",
+      "script": "winget --version",
+      "description": "winget is the Windows package manager the install steps use.",
+      "why": "Without it the install steps cannot work; install App Installer from the Microsoft Store.",
+      "success": { "outputMatches": "^v\\d+\\.\\d+" }
+    },
+    {
+      "id": "check-dotnet",
+      "title": "Look for the .NET SDK",
+      "type": "script",
+      "script": "dotnet --list-sdks",
+      "description": "Lists the installed SDKs.",
+      "why": "If the wanted major version is already there the install step is not needed.",
+      "continueOnFailure": true,
+      "success": { "outputMatches": "^\\d+\\.\\d+\\.\\d+" },
+      "captures": [{ "variable": "DotnetSdk", "pattern": "^(\\d+\\.\\d+\\.\\d+)" }]
+    },
+    {
+      "id": "install-dotnet",
+      "title": "Install the .NET SDK",
+      "type": "script",
+      "script": "winget install --id Microsoft.DotNet.SDK.{{SdkChannel}} --exact --silent --accept-package-agreements --accept-source-agreements",
+      "description": "Installs the chosen SDK version for all users.",
+      "why": "Building and running .NET projects needs the SDK, not only the runtime.",
+      "destructive": true,
+      "warning": "Installs software on this machine.",
+      "elevated": true,
+      "timeoutSeconds": 1800,
+      "success": { "exitCodes": [0, -1978335189] }
+    },
+    {
+      "id": "install-git",
+      "title": "Install Git",
+      "type": "script",
+      "script": "winget install --id Git.Git --exact --silent --accept-package-agreements --accept-source-agreements",
+      "description": "Installs Git for Windows.",
+      "why": "Source code and most templates come from Git repositories.",
+      "when": "{{InstallGit}}",
+      "destructive": true,
+      "warning": "Installs software on this machine.",
+      "timeoutSeconds": 1800,
+      "success": { "exitCodes": [0, -1978335189] }
+    },
+    {
+      "id": "reopen-terminal",
+      "title": "Open a new terminal",
+      "type": "manual",
+      "confirm": "I opened a new terminal window so the PATH is refreshed.",
+      "description": "Programs installed just now are only found by terminals started after the install.",
+      "why": "This player keeps the old PATH, so the next check can fail until you restart the player too."
+    },
+    {
+      "id": "verify",
+      "title": "Verify the tools",
+      "type": "script",
+      "script": "dotnet --version\ngit --version",
+      "description": "Prints both versions.",
+      "why": "A final check that the machine is ready.",
+      "success": { "outputMatches": "git version", "outputNotMatches": "(?i)is not recognized" }
+    }
+  ]
+}
