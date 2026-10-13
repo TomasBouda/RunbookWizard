@@ -17,3 +17,4 @@ a new record that supersedes the old one. Current shape of the system: [../ARCHI
 | [0010](0010-checklists-in-manual-steps.md) | Checklists in manual steps: `- [ ] item` in the description, `(optional)` marker, confirm gated, state as ticked indexes | accepted |
 | [0011](0011-license.md) | License: Apache-2.0 | accepted |
 | [0012](0012-placeholder-escape.md) | Placeholder escape is `{{!Name}}`: a backslash before a placeholder is a path separator | accepted |
+| [0013](0013-elevation-handling.md) | Elevation handling: detect, banner, gate elevated steps, restart as administrator through UAC without secrets | accepted |

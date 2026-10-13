@@ -36,9 +36,9 @@ The app uses `UsePlatformDetectOrHeadless` so the same build runs headless for U
 
 ## Known risks
 - Guides are untrusted input and scripts run with the user's rights: mitigated by click-to-run, the exact command shown, destructive confirmation and the risk scanner, not by a sandbox (ADR 0004). The risk scanner is heuristic.
-- Elevated steps are only flagged, not auto-elevated.
+- The player never elevates itself. Elevated steps are gated when it is not elevated (`ElevationGate`, `IElevationProbe`) and the person can restart it through UAC (`ElevatedRelaunch`, ADR 0013); values typed so far are not carried into the new instance.
 - Secret masking is string replacement of known values; a script that transforms a secret defeats it.
 - No resume after closing the app.
 
 ## Decisions
-See [decisions](decisions/README.md): stack (0001), storage (0002), format (0003), execution and trust (0004), distribution (0005), player behaviour and UI (0006), Markdown and syntax highlighting (0007), branching (0008), inline parameters (0009), checklists in manual steps (0010).
+See [decisions](decisions/README.md): stack (0001), storage (0002), format (0003), execution and trust (0004), distribution (0005), player behaviour and UI (0006), Markdown and syntax highlighting (0007), branching (0008), inline parameters (0009), checklists in manual steps (0010), license (0011), placeholder escape (0012), elevation handling (0013).

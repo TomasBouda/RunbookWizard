@@ -98,6 +98,16 @@ public sealed partial class StepViewModel : ObservableObject
 
     public bool IsElevated => Model.Elevated;
 
+    /// <summary>An elevated step cannot run while the player itself is not elevated (ADR 0013); Skip stays available.</summary>
+    public bool ElevationBlocked => IsScript && ElevationGate.Check(Model.Elevated, _owner.ElevationProbe).Blocked;
+
+    public string ElevationNote => ElevationBlocked ? ElevationGate.BlockedReason : string.Empty;
+
+    /// <summary>The "Restart as administrator" action of the guide (also offered next to the blocked step).</summary>
+    public IRelayCommand RestartElevatedCommand => _owner.RestartElevatedCommand;
+
+    public bool CanRelaunchElevated => _owner.CanRelaunchElevated;
+
     public StepType Type => Model.EffectiveType;
 
     public bool IsScript => Type == StepType.Script;
@@ -211,7 +221,7 @@ public sealed partial class StepViewModel : ObservableObject
     public bool IsSkipped => Status == StepStatus.Skipped;
 
     /// <summary>The Run button is available when the steps before are settled, the parameters are complete and nothing is running.</summary>
-    public bool CanRun => IsScript && !IsBlocked && !IsRunning && !ConfirmPending && Problems.Length == 0;
+    public bool CanRun => IsScript && !IsBlocked && !IsRunning && !ConfirmPending && Problems.Length == 0 && !ElevationBlocked;
 
     /// <summary>The confirm button is shown for manual and info steps that are open.</summary>
     public bool ShowFinish => (IsManual || IsInfo) && !IsBlocked && !IsDone;
@@ -277,6 +287,10 @@ public sealed partial class StepViewModel : ObservableObject
         WorkingDirectory = _plan.WorkingDirectory;
         Problems = _plan.Problems.ToArray();
         Risks = _plan.Risks.ToArray();
+        OnPropertyChanged(nameof(ElevationBlocked));
+        OnPropertyChanged(nameof(ElevationNote));
+        OnPropertyChanged(nameof(CanRelaunchElevated));
+        OnPropertyChanged(nameof(CanRun));
     }
 
     /// <summary>
@@ -305,7 +319,7 @@ public sealed partial class StepViewModel : ObservableObject
     [RelayCommand]
     private async Task RunAsync()
     {
-        if (!IsScript || IsRunning || IsBlocked)
+        if (!IsScript || IsRunning || IsBlocked || ElevationBlocked)
             return;
         RefreshPlan();
         if (_plan is null || !_plan.CanRun)
@@ -323,7 +337,7 @@ public sealed partial class StepViewModel : ObservableObject
     [RelayCommand]
     private async Task ConfirmRunAsync()
     {
-        if (!ConfirmPending)
+        if (!ConfirmPending || ElevationBlocked)
             return;
         ConfirmPending = false;
         RefreshPlan();

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added: steps marked `elevated` no longer fail confusingly when the player is not run as administrator. A banner explains it, Run is disabled for such a step with the reason (Skip still works), and "Restart as administrator" reopens the player with the same guide through the Windows administrator prompt. Entered values are not carried over.
+
 - Fixed: a `{{Name}}` placeholder right after a backslash (`IIS:\AppPools\{{SiteName}}`, `C:\{{Folder}}`) was not substituted and lost the backslash in the executed command. A backslash is now only a path separator.
 - Changed: the escape for a literal `{{Name}}` is now `{{!Name}}` (was `\{{Name}}`).
 

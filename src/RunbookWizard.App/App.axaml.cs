@@ -3,6 +3,7 @@ using System.Linq;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using RunbookWizard.Core.Execution;
 using RunbookWizard.App.Services;
 using RunbookWizard.App.ViewModels;
 using RunbookWizard.App.Views;
@@ -39,7 +40,7 @@ public partial class App : Application
             var store = _store ?? new SettingsStore();
             StartUpdater(desktop, store);
 
-            var viewModel = new MainWindowViewModel(store);
+            var viewModel = new MainWindowViewModel(store) { ExitApplication = () => desktop.Shutdown() };
             desktop.MainWindow = new MainWindow { DataContext = viewModel };
             var automation = StartAutomation(desktop, viewModel);
             desktop.Exit += (_, _) =>
@@ -91,7 +92,20 @@ public partial class App : Application
             option.ChooseCommand.Execute(null);
             return new { chosen = option.Label, selected = viewModel.SelectedStep?.Id };
         };
-        server.Actions["tick"] = (window, arg) =>
+        // Pretends the player is (not) elevated so both states can be shown headless; "real" asks the process again. The relaunch itself is not scripted (it would show a real UAC prompt).
+        server.Actions["elevation"] = (window, arg) =>
+        {
+            IElevationProbe probe = arg?.ToLowerInvariant() switch
+            {
+                "on" => new FixedElevationProbe(true),
+                "off" => new FixedElevationProbe(false),
+                "real" => new ProcessElevationProbe(),
+                _ => throw new ArgumentException($"Unknown value '{arg}' (on, off, real)"),
+            };
+            viewModel.SetElevationProbe(probe);
+            return new { elevated = viewModel.IsElevated, banner = viewModel.ShowElevationBanner };
+        };
+        server.Actions["tick"] =(window, arg) =>
         {
             var step = viewModel.SelectedStep ?? throw new InvalidOperationException("No step is selected");
             if (!step.CanTick)

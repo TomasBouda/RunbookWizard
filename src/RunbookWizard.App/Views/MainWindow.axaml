@@ -132,7 +132,25 @@
         </Border>
 
         <!-- Content -->
-        <Panel Grid.Column="1">
+        <Grid Grid.Column="1" RowDefinitions="Auto,*">
+
+        <!-- Not elevated, but the guide has steps that need administrator rights: a notice, not a block (ADR 0013) -->
+        <Border Grid.Row="0" Name="ElevationBanner" Classes="hairline-b" Background="{DynamicResource PanelBrush}" Padding="18,10" IsVisible="{Binding ShowElevationBanner}">
+          <Grid ColumnDefinitions="Auto,10,*,12,Auto">
+            <i:Icon Grid.Column="0" Value="fa-solid fa-shield-halved" FontSize="14" Foreground="{DynamicResource WarnBrush}" VerticalAlignment="Center" />
+            <StackPanel Grid.Column="2" Spacing="2" VerticalAlignment="Center">
+              <TextBlock Name="ElevationBannerText" Text="{Binding ElevationBannerText}" TextWrapping="Wrap" FontSize="12.5" />
+              <TextBlock Name="SudoHint" Classes="muted" FontSize="11.5" TextWrapping="Wrap" IsVisible="{Binding ShowSudoHint}"
+                         Text="Start the player with sudo to run them." />
+            </StackPanel>
+            <Button Grid.Column="4" Name="RestartElevatedButton" Classes="accent" Command="{Binding RestartElevatedCommand}" IsVisible="{Binding CanRelaunchElevated}"
+                    VerticalAlignment="Center" ToolTip.Tip="Opens the Windows administrator prompt, then restarts the player with this guide. Entered values are not carried over.">
+              <StackPanel><i:Icon Value="fa-solid fa-shield-halved" FontSize="11" /><TextBlock Text="Restart as administrator" /></StackPanel>
+            </Button>
+          </Grid>
+        </Border>
+
+        <Panel Grid.Row="1">
 
           <!-- Welcome: nothing open yet -->
           <ScrollViewer IsVisible="{Binding ShowWelcome}">
@@ -404,6 +422,15 @@
               </StackPanel>
               <TextBlock Name="ChecklistHint" Classes="muted" FontSize="11.5" IsVisible="{Binding WaitsForChecklist}" TextWrapping="Wrap"
                          Text="Tick the required checklist items to continue." />
+              <Border Name="ElevationNotice" Classes="notice" IsVisible="{Binding ElevationBlocked}">
+                <Grid ColumnDefinitions="Auto,10,*,12,Auto">
+                  <i:Icon Grid.Column="0" Value="fa-solid fa-shield-halved" FontSize="13" Foreground="{DynamicResource WarnBrush}" VerticalAlignment="Top" Margin="0,2,0,0" />
+                  <TextBlock Grid.Column="2" Name="ElevationNoteText" Text="{Binding ElevationNote}" TextWrapping="Wrap" />
+                  <Button Grid.Column="4" Name="RestartElevatedStepButton" Command="{Binding RestartElevatedCommand}" IsVisible="{Binding CanRelaunchElevated}" VerticalAlignment="Top">
+                    <StackPanel><i:Icon Value="fa-solid fa-shield-halved" FontSize="10" /><TextBlock Text="Restart as administrator" /></StackPanel>
+                  </Button>
+                </Grid>
+              </Border>
               <TextBlock Classes="muted" FontSize="11.5" IsVisible="{Binding IsBlocked}" TextWrapping="Wrap"
                          Text="Finish or skip the steps before this one first." />
 
@@ -494,6 +521,7 @@
             </Border>
           </Grid>
         </Panel>
+        </Grid>
       </Grid>
 
       <!-- ===== Status bar ===== -->

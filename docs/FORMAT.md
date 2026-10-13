@@ -98,7 +98,7 @@ slug gets `-2`, `-3`).
 | `env` | map string->string | | Extra environment variables; values support `{{Variable}}`. |
 | `destructive` | bool | false | Deletes or overwrites data / changes the system irreversibly. Needs an extra confirmation. |
 | `warning` | string | | Shown prominently above the Run button. |
-| `elevated` | bool | false | Says the step needs administrator/root rights. The player does not elevate for you. |
+| `elevated` | bool | false | Says the step needs administrator/root rights. The player never elevates itself: when it does not run as administrator it shows a banner (with "Restart as administrator", Windows UAC), disables Run for this step and explains why; Skip stays available. Applies to script steps. |
 | `when` | condition | | Offered only when true, otherwise skipped (section 4.3). |
 | `success` | object | exit code 0 | `exitCodes: [0, 3010]`, `outputMatches: regex`, `outputNotMatches: regex`. All given rules must hold. |
 | `captures` | list | | After a run, `{ variable: Name, pattern: regex }` stores output text into a variable for later steps. |

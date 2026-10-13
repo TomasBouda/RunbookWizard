@@ -19,6 +19,6 @@ tomlabs-ui shot out.png
 tomlabs-ui stop
 ```
 - Env var `RUNBOOKWIZARD_AUTOMATION=<port>` enables the channel; data folder from `RUNBOOKWIZARD_DATA_DIR` or `--data-dir`.
-- App actions: `do/page?arg=overview|parameters|logs`, `do/open?arg=<absolute path>` (a relative path resolves against `.ui-build`), `do/select?arg=<step id or number>`, `do/choose?arg=<option number or label>` (answers the selected choice step), `do/tick?arg=<item number|all|none>` (toggles checklist items of the selected manual step; confirm with the `FinishButton` click).
+- App actions: `do/page?arg=overview|parameters|logs`, `do/open?arg=<absolute path>` (a relative path resolves against `.ui-build`), `do/select?arg=<step id or number>`, `do/choose?arg=<option number or label>` (answers the selected choice step), `do/elevation?arg=on|off|real` (pretends the player is or is not elevated, to show both states), `do/tick?arg=<item number|all|none>` (toggles checklist items of the selected manual step; confirm with the `FinishButton` click).
 - Button names: StartButton, RunButton, ConfirmRunButton, CancelConfirmButton, StopButton, FinishButton, NextButton, SkipButton, ResetButton.
 - The fixture guide `tests/ui-fixture/ui-demo.runbook.md` exercises every state (success and capture, condition skip, failure, destructive, manual). It only touches its own temp folder.

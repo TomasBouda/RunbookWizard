@@ -33,9 +33,10 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private readonly SettingsStore _store;
     private readonly AppSettings _settings;
 
-    public MainWindowViewModel(SettingsStore store)
+    public MainWindowViewModel(SettingsStore store, IElevationProbe? elevation = null)
     {
         _store = store;
+        ElevationProbe = elevation ?? new ProcessElevationProbe();
         _settings = store.Load();
         _theme = ThemeModes.Normalize(_settings.Theme);
         Palette = new CommandPaletteViewModel(this);
@@ -44,6 +45,78 @@ public sealed partial class MainWindowViewModel : ObservableObject
     }
 
     public string Version => AppInfo.Version;
+
+    // ---- elevation (ADR 0013) ----
+
+    /// <summary>Tells whether this process has administrator/root rights. The player never elevates itself (ADR 0004).</summary>
+    public IElevationProbe ElevationProbe { get; private set; }
+
+    /// <summary>Set by the application: closes this instance after an elevated copy was started.</summary>
+    public Action? ExitApplication { get; set; }
+
+    public bool IsElevated => ElevationProbe.IsElevated;
+
+    public int ElevatedStepCount => Runbook is null ? 0 : ElevationGate.CountElevated(Runbook.Steps);
+
+    /// <summary>The guide has steps that need administrator rights and this process does not have them.</summary>
+    public bool ShowElevationBanner => IsRunnable && ElevatedStepCount > 0 && !IsElevated;
+
+    public string ElevationBannerText => ElevationGate.Summary(ElevatedStepCount, Steps.Count)
+        + " The player is not running as administrator, so those steps cannot run. Restart it as administrator, or skip them.";
+
+    /// <summary>The "Restart as administrator" button works through the Windows UAC prompt; elsewhere the person starts the player with sudo.</summary>
+    public bool CanRelaunchElevated => OperatingSystem.IsWindows() && SourcePath is not null;
+
+    public bool ShowSudoHint => ShowElevationBanner && !OperatingSystem.IsWindows();
+
+    /// <summary>Replaces the probe (tests and the automation channel) and recomputes what depends on it.</summary>
+    public void SetElevationProbe(IElevationProbe probe)
+    {
+        ElevationProbe = probe;
+        NotifyElevationChanged();
+        RefreshAll();
+    }
+
+    private void NotifyElevationChanged()
+    {
+        OnPropertyChanged(nameof(IsElevated));
+        OnPropertyChanged(nameof(ElevatedStepCount));
+        OnPropertyChanged(nameof(ShowElevationBanner));
+        OnPropertyChanged(nameof(ElevationBannerText));
+        OnPropertyChanged(nameof(CanRelaunchElevated));
+        OnPropertyChanged(nameof(ShowSudoHint));
+    }
+
+    /// <summary>
+    /// Starts a second copy of the player through the UAC prompt, with this guide, and closes this one. The command line holds the guide
+    /// path and the data folder, never a parameter value. If the prompt is cancelled this instance stays open.
+    /// </summary>
+    [RelayCommand]
+    private void RestartElevated()
+    {
+        if (!CanRelaunchElevated || SourcePath is null)
+            return;
+        try
+        {
+            var processPath = Environment.ProcessPath ?? throw new InvalidOperationException("The path of this program is unknown.");
+            var info = ElevatedRelaunch.BuildStartInfo(System.Reflection.Assembly.GetEntryAssembly()?.Location, processPath, SourcePath, _store.Directory);
+            AppLog.For("app").Information("Restarting as administrator with guide {Path}", SourcePath);
+            System.Diagnostics.Process.Start(info);
+        }
+        catch (System.ComponentModel.Win32Exception ex) when (ex.NativeErrorCode == 1223)
+        {
+            AppLog.For("app").Information("The administrator prompt was cancelled");
+            StatusText = "The administrator prompt was cancelled. This window stays as it is.";
+            return;
+        }
+        catch (Exception ex)
+        {
+            AppLog.For("app").Error(ex, "Restart as administrator failed");
+            StatusText = "Could not restart as administrator: " + ex.Message;
+            return;
+        }
+        ExitApplication?.Invoke();
+    }
 
     public string DataDirectory => _store.Directory;
 
@@ -241,6 +314,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         OnPropertyChanged(nameof(HasDiagnostics));
         OnPropertyChanged(nameof(HasErrors));
         OnPropertyChanged(nameof(TotalSteps));
+        NotifyElevationChanged();
         RefreshAll();
 
         Page = Page.Overview;
