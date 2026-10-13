@@ -22,6 +22,20 @@ The parser turns either into the same JSON tree, validates the tree against the 
 diagnostics with a path. The full normative text is `docs/FORMAT.md`; guides under `docs/examples/` are validated
 against the schema by the test suite, so spec, schema and examples cannot drift apart unnoticed.
 
+## Survey of existing tools (2026-10-13)
+Asked before building: does something already cover "a wizard for non-developers that runs guide steps"?
+
+| Tool | What it is | Adopted | Deliberately not adopted / why it does not cover the need |
+|---|---|---|---|
+| **Runme** (runme.dev) | Runnable Markdown: fenced blocks executed from a CLI, VS Code extension or notebook UI; attributes after the language tag (`sh { name=build interactive=false }`, HTML-attribute or JSON notation), document and cell options, env prompts | Plain Markdown with fenced code blocks as the authoring form; attributes after the shell tag (`name`, any step field, both notations); named steps; environment variables as the channel for values | Developer-facing (CLI/VS Code), no ordered wizard with step status, no mandatory "why", no success checks, no declared and validated parameters, no "show exact command, run only on click" trust model for untrusted authors |
+| **Jupyter `.ipynb`** | JSON notebook of cells with outputs, executed by a kernel server | Nothing of the file format | JSON with embedded outputs is unfriendly to hand-writing and diffs, needs a kernel/server and Python tooling, cell model has no step semantics (status, why, checks, conditions) |
+| **Polyglot Notebooks / .NET Interactive** (`.dib`, `.ipynb`) | Multi-language notebooks in VS Code | Idea of per-block language tags | Developer environment inside VS Code; the project is archived and its deprecation announced for 2026 |
+
+No existing tool fully covers the need, so we build on, not instead of: the format stays Runme-shaped (Markdown +
+fences + a small attribute layer) and adds the differentiators: a standalone wizard window for non-developer
+end users, ordered steps with status, a mandatory-by-convention "why", success checks, parameters entered once,
+and nothing runs without a click. Runme-style attributes on the script fence are accepted as shorthand for the `step` block.
+
 ## Alternatives considered
 - **Everything in YAML (steps in the frontmatter):** perfectly regular but miserable for prose and multi-line
   scripts (indentation, `|` blocks) - the exact things guides consist of.

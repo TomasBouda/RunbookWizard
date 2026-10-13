@@ -69,6 +69,11 @@ Rules, in full:
      A second shell block in one step is an error; show example code in a block tagged otherwise (`text`, `json`, ...).
    - a level-3 heading `### Why` starts the **why** text, which ends at the next level-3 or higher heading.
    - everything else is the **description** (Markdown, kept as written).
+   **Runme-style shorthand:** attributes may follow the shell tag on the opening fence, in Runme's notations:
+   ```` ```powershell { name=install destructive=true timeoutSeconds=90 } ```` or ```` ```bash {"name":"install"} ````.
+   `name` is the step `id`; any other step field works. Attributes in a `step` block win over these. Use the block
+   for anything longer than a few scalars (`success`, `captures`, `env`). Values containing `{{` must be quoted
+   (in YAML too: `when: "{{os}} == windows"`).
 4. The attributes in the `step` block must not repeat `title`, `description`, `why` or `script`; those come from the
    Markdown structure. They may set everything else.
 5. Code fences are ```` ``` ```` or `~~~`; a heading inside a fence is not a heading.
@@ -145,7 +150,7 @@ Examples: `{{os}} == windows`, `{{Mode}} == 'prod' && {{Backup}}`, `!{{SkipTls}}
 
 - A script step runs **only on a click**, after the exact text (parameters substituted) was shown (ADR 0004).
 - `powershell` means PowerShell 7 (`pwsh`) when installed, else Windows PowerShell; `pwsh` and `winps` (Windows
-  PowerShell 5.1) pin one of them; `bash` / `sh` / `cmd` as named (`cmd` is `cmd.exe /d /c`).
+  PowerShell 5.1) pin one of them; `bash` / `sh` / `cmd` as named (`cmd` is `cmd.exe /d /q /c`).
 - The script is written to a temporary UTF-8 file. PowerShell steps run in a wrapper that sets
   `$ErrorActionPreference = 'Stop'` before your script (set it back inside the script if you want the old behaviour)
   and then exits with the exit code of the last native command. Other shells run the file unchanged - start `bash`

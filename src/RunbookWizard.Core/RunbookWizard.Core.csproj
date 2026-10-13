@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="YamlDotNet" Version="17.0.1" />
+    <PackageReference Include="JsonSchema.Net" Version="7.2.3" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- The one normative schema (see docs/FORMAT.md) is compiled into the library, so the parser validates against exactly this file. -->
+    <EmbeddedResource Include="..\..\schema\runbook.schema.json" LogicalName="runbook.schema.json" />
+  </ItemGroup>
+</Project>
