@@ -7,6 +7,13 @@ The core idea is **one unified format for guides** that a person can hand-write 
 Markdown with YAML frontmatter (`*.runbook.md`) or JSON (`*.runbook.json`), validated against one JSON Schema.
 RunbookWizard is the reference player for it.
 
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/screenshot-dark.png">
+    <img alt="RunbookWizard playing the hello-world guide: a finished step with its explanation, the command with an editable parameter field, the result and the output" src="docs/images/screenshot-light.png" width="900">
+  </picture>
+</p>
+
 - Format specification: [docs/FORMAT.md](docs/FORMAT.md), schema: [schema/runbook.schema.json](schema/runbook.schema.json)
 - Examples: [docs/examples](docs/examples)
 - Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), decisions: [docs/decisions](docs/decisions)
