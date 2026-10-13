@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Added: Apache-2.0 license (`LICENSE`), declared in the README and in the build properties.
 - Added: checklists in manual steps. Write `- [ ] item` lines in the step text and the player shows checkboxes; the confirm button stays disabled until every required item is ticked. Start an item with `(optional)` to let it stay unticked.
 - Added: the example guide `docs/examples/checklist-handover.runbook.md`.
 - Added: branching in guides. A `choice` step lets the reader pick a way; `next` and `onFailure` jump to another step; steps on a path not taken show as skipped. Unknown targets and loops are rejected when the guide opens.

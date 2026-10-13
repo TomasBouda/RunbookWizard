@@ -15,3 +15,4 @@ a new record that supersedes the old one. Current shape of the system: [../ARCHI
 | [0008](0008-branching-in-guides.md) | Branching in guides: `choice`, `next`, `onFailure`, derived path, no loops | accepted |
 | [0009](0009-inline-parameters.md) | Parameters inside the command: fields as AvaloniaEdit inline objects | accepted |
 | [0010](0010-checklists-in-manual-steps.md) | Checklists in manual steps: `- [ ] item` in the description, `(optional)` marker, confirm gated, state as ticked indexes | accepted |
+| [0011](0011-license.md) | License: Apache-2.0 | accepted |

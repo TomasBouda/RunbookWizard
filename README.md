@@ -24,3 +24,7 @@ dotnet run --project src/RunbookWizard.App -- docs/examples/hello-world.runbook.
 
 `RunbookWizard --health` prints the health JSON (`status`, `version`, `name`); `RunbookWizard <guide>` opens a guide.
 UI verification uses the shared automation channel, see [CLAUDE.md](CLAUDE.md).
+
+## License
+
+Licensed under the [Apache License 2.0](LICENSE).

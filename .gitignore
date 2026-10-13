@@ -22,3 +22,6 @@ TestResults/
 # Runtime data of a developer machine
 settings.local.json
 *.runlog.md
+
+# Agent worktrees
+.claude/worktrees/

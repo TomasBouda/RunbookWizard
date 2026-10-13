@@ -5,6 +5,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>latest</LangVersion>
     <Authors>Tomas Bouda</Authors>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <Copyright>Copyright (c) 2026 Tomas Bouda</Copyright>
     <!-- Single source of truth for the version shown in the UI and reported by the health flag. -->
     <Version>0.1.0</Version>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
