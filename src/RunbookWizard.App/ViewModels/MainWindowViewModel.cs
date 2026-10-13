@@ -102,6 +102,9 @@ public sealed partial class MainWindowViewModel : ObservableObject
     [ObservableProperty]
     private bool _isFinished;
 
+    [ObservableProperty]
+    private string _finishedText = string.Empty;
+
     public bool HasGuide => Runbook is not null;
 
     public bool IsRunnable { get; private set; }
@@ -305,7 +308,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
             ShowParametersPage();
             return;
         }
-        SelectedStep = Steps.FirstOrDefault(s => s.IsPending && !s.IsBlocked) ?? Steps.FirstOrDefault(s => s.IsFailed) ?? Steps.FirstOrDefault();
+        SelectedStep = (Flow?.Current is { } current && current < Steps.Count ? Steps[current] : null)
+            ?? Steps.FirstOrDefault(s => s.IsFailed) ?? Steps.FirstOrDefault();
     }
 
     public void SelectStep(string idOrNumber)
@@ -349,43 +353,69 @@ public sealed partial class MainWindowViewModel : ObservableObject
         GoToNext(step);
     }
 
-    /// <summary>Selects the next step after <paramref name="step"/> that is neither done nor skipped; the overview when none is left.</summary>
+    /// <summary>The path through the guide as of the last refresh.</summary>
+    public FlowResult? Flow { get; private set; }
+
+    /// <summary>"05 Install" for a step id (for texts that say where a route leads).</summary>
+    public string Describe(string id)
+    {
+        var step = Steps.FirstOrDefault(s => string.Equals(s.Id, id, StringComparison.Ordinal));
+        return step is null ? id : $"{step.Number} {step.Title}";
+    }
+
+    /// <summary>Selects the step the path leads to next (the first one that needs attention); the overview when the path is complete.</summary>
     public void GoToNext(StepViewModel step)
     {
-        var next = Steps.Skip(step.Index).FirstOrDefault(s => !s.IsSkipped && !s.IsDone);
-        if (next is not null)
+        RefreshAll();
+        if (Flow?.Current is { } current && current < Steps.Count)
         {
-            SelectedStep = next;
+            SelectedStep = Steps[current];
             return;
         }
-        if (Steps.All(s => s.IsDone || s.IsSkipped))
+        if (Flow is { IsComplete: true })
         {
             SelectedStep = null;
             Page = Page.Overview;
         }
     }
 
+    private FlowResult Evaluate() => FlowPlanner.Evaluate(Runbook!, Steps.Select(s => s.Flow).ToList());
+
     private void RefreshAll()
     {
         if (Variables is null)
             return;
 
-        // A condition can depend on a variable another step has just captured, so settle until nothing changes.
-        for (var pass = 0; pass < 3 && Steps.Count(s => s.EvaluateCondition()) > 0; pass++)
-        {
-        }
+        foreach (var parameter in Parameters)
+            parameter.Refresh();
 
-        var blocked = false;
-        foreach (var step in Steps)
+        // Conditions can depend on a variable another step has just captured, and a skipped step changes the path, which
+        // changes which steps lie on a path not taken: settle until nothing changes.
+        var flow = Evaluate();
+        for (var pass = 0; pass < 6; pass++)
         {
-            step.IsBlocked = blocked;
-            step.RefreshPlan();
-            if (step.IsPending || step.IsRunning || (step.IsFailed && !step.Model.ContinueOnFailure))
-                blocked = true;
+            var changed = 0;
+            for (var i = 0; i < Steps.Count; i++)
+                changed += Steps[i].ApplyAutoSkip(!flow.Reachable.Contains(i)) ? 1 : 0;
+            if (changed == 0)
+                break;
+            flow = Evaluate();
+        }
+        Flow = flow;
+
+        // Only the steps up to the one that needs attention are available; later ones wait (also those finished earlier).
+        var walked = flow.Walked.ToHashSet();
+        for (var i = 0; i < Steps.Count; i++)
+        {
+            Steps[i].IsBlocked = !walked.Contains(i);
+            Steps[i].RefreshPlan();
         }
 
         DoneCount = Steps.Count(s => s.IsDone || s.IsSkipped);
-        IsFinished = Steps.Count > 0 && DoneCount == Steps.Count;
+        IsFinished = Steps.Count > 0 && flow.IsComplete;
+        FinishedText = Steps.Any(s => s.IsFailed)
+            ? "The guide reached its end. A step failed on the way and the route for that case was followed."
+            : "Every step is done or skipped. The guide is finished.";
         OnPropertyChanged(nameof(ProgressPercent));
         OnPropertyChanged(nameof(ProgressText));
         if (Runbook is not null && IsRunnable)

@@ -192,7 +192,7 @@
               <Border Classes="notice ok" IsVisible="{Binding IsFinished}">
                 <StackPanel Orientation="Horizontal" Spacing="10">
                   <i:Icon Value="fa-solid fa-circle-check" FontSize="14" Foreground="{DynamicResource RunningBrush}" />
-                  <TextBlock Text="Every step is done or skipped. The guide is finished." VerticalAlignment="Center" />
+                  <TextBlock Name="FinishedText" Text="{Binding FinishedText}" VerticalAlignment="Center" TextWrapping="Wrap" />
                 </StackPanel>
               </Border>
 
@@ -273,6 +273,11 @@
                 </WrapPanel>
               </StackPanel>
 
+              <StackPanel Spacing="2" IsVisible="{Binding HasNextText}">
+                <TextBlock Name="NextRouteText" Classes="mono muted" FontSize="11" TextWrapping="Wrap" Text="{Binding NextText}" />
+              </StackPanel>
+              <TextBlock Name="FailureRouteText" Classes="mono muted" FontSize="11" TextWrapping="Wrap" Text="{Binding FailureText}" IsVisible="{Binding HasFailureText}" />
+
               <Border Classes="notice" IsVisible="{Binding HasWarning}">
                 <Grid ColumnDefinitions="Auto,10,*">
                   <i:Icon Value="fa-solid fa-triangle-exclamation" FontSize="13" Foreground="{DynamicResource WarnBrush}" VerticalAlignment="Top" Margin="0,2,0,0" />
@@ -289,6 +294,27 @@
                 </StackPanel>
               </Border>
 
+              <StackPanel Spacing="6" IsVisible="{Binding IsChoice}">
+                <TextBlock Classes="section" Text="CHOOSE ONE" />
+                <ItemsControl Name="OptionsList" ItemsSource="{Binding Options}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:OptionViewModel">
+                      <Button Classes="option" Classes.chosen="{Binding IsChosen}" Command="{Binding ChooseCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                              IsEnabled="{Binding $parent[ItemsControl].((vm:StepViewModel)DataContext).CanChoose}" Margin="0,0,0,6">
+                        <Grid ColumnDefinitions="Auto,12,*">
+                          <i:Icon Value="fa-solid fa-code-branch" FontSize="12" VerticalAlignment="Top" Margin="0,3,0,0" Foreground="{DynamicResource AccentBrush}" />
+                          <StackPanel Grid.Column="2" Spacing="2">
+                            <TextBlock Text="{Binding Label}" FontWeight="Medium" FontSize="13" TextWrapping="Wrap" />
+                            <TextBlock Classes="secondary" TextWrapping="Wrap" Text="{Binding Description}" IsVisible="{Binding HasDescription}" />
+                            <TextBlock Classes="mono muted" FontSize="10.5" Text="{Binding TargetText}" />
+                          </StackPanel>
+                        </Grid>
+                      </Button>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+
               <StackPanel Spacing="6" IsVisible="{Binding IsScript}">
                 <Grid ColumnDefinitions="Auto,16,*">
                   <TextBlock Classes="section" Text="COMMAND" VerticalAlignment="Center" />
@@ -296,7 +322,7 @@
                              Text="{Binding WorkingDirectory, StringFormat='runs in {0}'}" ToolTip.Tip="{Binding WorkingDirectory}" />
                 </Grid>
                 <Border Classes="command">
-                  <ctl:CodeView Name="CommandText" Code="{Binding Preview}" Language="{Binding PreviewLanguage}" />
+                  <ctl:CodeView Name="CommandText" Code="{Binding InlineCode}" Parameters="{Binding InlineParameters}" Language="{Binding PreviewLanguage}" />
                 </Border>
               </StackPanel>
 

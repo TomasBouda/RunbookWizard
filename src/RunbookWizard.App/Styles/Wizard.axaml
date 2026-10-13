@@ -89,4 +89,52 @@
     <Style Selector="Button.navrow.active">
         <Setter Property="Background" Value="{DynamicResource SelectedBrush}"/>
     </Style>
+
+    <!-- A choice step: each option is a card-like button. -->
+    <Style Selector="Button.option">
+        <Setter Property="Padding" Value="14,10"/>
+        <Setter Property="Background" Value="{DynamicResource PanelBrush}"/>
+        <Setter Property="CornerRadius" Value="6"/>
+    </Style>
+    <Style Selector="Button.option.chosen">
+        <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+    </Style>
+
+    <!-- Parameter fields inside the command (ADR 0009): compact, one line high, tinted so they read as inputs in the code. -->
+    <Style Selector="TextBox.param">
+        <Setter Property="MinHeight" Value="0"/>
+        <Setter Property="MinWidth" Value="0"/>
+        <Setter Property="Height" Value="20"/>
+        <Setter Property="Padding" Value="5,0"/>
+        <Setter Property="CornerRadius" Value="3"/>
+        <Setter Property="FontFamily" Value="{StaticResource MonoFont}"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource AccentBorderBrush}"/>
+    </Style>
+    <Style Selector="TextBox.param:pointerover /template/ Border#PART_BorderElement">
+        <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+    </Style>
+    <Style Selector="TextBox.param:focus /template/ Border#PART_BorderElement">
+        <Setter Property="Background" Value="{DynamicResource BgElevatedBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+    </Style>
+    <Style Selector="TextBox.param.invalid /template/ Border#PART_BorderElement, TextBox.param.invalid:focus /template/ Border#PART_BorderElement">
+        <Setter Property="BorderBrush" Value="{DynamicResource ErrorBrush}"/>
+    </Style>
+    <Style Selector="ComboBox.param">
+        <Setter Property="MinHeight" Value="0"/>
+        <Setter Property="Height" Value="22"/>
+        <Setter Property="Padding" Value="6,0"/>
+        <Setter Property="CornerRadius" Value="3"/>
+        <Setter Property="FontFamily" Value="{StaticResource MonoFont}"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource AccentBorderBrush}"/>
+    </Style>
+    <Style Selector="ComboBox.param.invalid">
+        <Setter Property="BorderBrush" Value="{DynamicResource ErrorBrush}"/>
+    </Style>
 </Styles>

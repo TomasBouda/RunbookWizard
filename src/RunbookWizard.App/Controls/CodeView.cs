@@ -1,9 +1,11 @@
 using System;
+using System.Collections.Generic;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 using AvaloniaEdit;
 using RunbookWizard.App.Services;
+using RunbookWizard.App.ViewModels;
 
 namespace RunbookWizard.App.Controls;
 
@@ -11,14 +13,19 @@ namespace RunbookWizard.App.Controls;
 /// Read-only, selectable, syntax-highlighted code (AvaloniaEdit): the command preview of a script step and the fenced blocks
 /// of rendered Markdown. It grows with its content (no inner scrolling), wraps long lines and re-tones the grammar colours
 /// when the theme changes. Bind <see cref="Code"/> and <see cref="Language"/> (a shell name or a fence tag; unknown stays plain).
+/// With <see cref="Parameters"/> the <c>{{Name}}</c> placeholders in the code become editable fields inside the text (ADR 0009).
 /// </summary>
 public class CodeView : TextEditor
 {
     public static readonly StyledProperty<string?> CodeProperty = AvaloniaProperty.Register<CodeView, string?>(nameof(Code));
     public static readonly StyledProperty<string?> LanguageProperty = AvaloniaProperty.Register<CodeView, string?>(nameof(Language));
 
+    public static readonly StyledProperty<IReadOnlyDictionary<string, VariableViewModel>?> ParametersProperty =
+        AvaloniaProperty.Register<CodeView, IReadOnlyDictionary<string, VariableViewModel>?>(nameof(Parameters));
+
     public CodeView()
     {
+        TextArea.TextView.ElementGenerators.Add(new ParameterElementGenerator(() => Parameters));
         IsReadOnly = true;
         ShowLineNumbers = false;
         WordWrap = true;
@@ -42,6 +49,13 @@ public class CodeView : TextEditor
         set => SetValue(CodeProperty, value);
     }
 
+    /// <summary>The parameters that placeholders in <see cref="Code"/> are edited with, by name; null: placeholders are plain text.</summary>
+    public IReadOnlyDictionary<string, VariableViewModel>? Parameters
+    {
+        get => GetValue(ParametersProperty);
+        set => SetValue(ParametersProperty, value);
+    }
+
     public string? Language
     {
         get => GetValue(LanguageProperty);
@@ -57,6 +71,8 @@ public class CodeView : TextEditor
             Text = Code ?? string.Empty;
         else if (change.Property == LanguageProperty)
             Highlight();
+        else if (change.Property == ParametersProperty)
+            TextArea.TextView.Redraw();
     }
 
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)

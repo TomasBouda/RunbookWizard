@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading;
@@ -25,13 +26,18 @@ public sealed partial class StepViewModel : ObservableObject
     private readonly MainWindowViewModel _owner;
     private CancellationTokenSource? _cts;
     private StepPlan? _plan;
+    private string? _chosenTarget;
 
     public StepViewModel(MainWindowViewModel owner, Step model, int index)
     {
         _owner = owner;
         Model = model;
         Index = index;
+        InlineParameters = owner.Parameters.ToDictionary(p => p.Name, StringComparer.Ordinal);
+        Options = new ObservableCollection<OptionViewModel>(model.Options.Select(o => new OptionViewModel(this, o)));
     }
+
+    internal MainWindowViewModel Owner => _owner;
 
     public Step Model { get; }
 
@@ -67,6 +73,39 @@ public sealed partial class StepViewModel : ObservableObject
 
     public bool IsInfo => Type == StepType.Info;
 
+    public bool IsChoice => Type == StepType.Choice;
+
+    /// <summary>The answers of a choice step.</summary>
+    public ObservableCollection<OptionViewModel> Options { get; }
+
+    /// <summary>The parameters the command can be edited with, by name (the same objects the Parameters page edits).</summary>
+    public IReadOnlyDictionary<string, VariableViewModel> InlineParameters { get; }
+
+    /// <summary>The command with its parameter placeholders still in it, for the editable command view.</summary>
+    [ObservableProperty]
+    private string _inlineCode = string.Empty;
+
+    /// <summary>"After this step, continue with 05 Install" when the guide declares where success leads.</summary>
+    public string NextText => Model.Next is { } id && !IsChoice ? "After this step, continue with " + _owner.Describe(id) : string.Empty;
+
+    /// <summary>"If this step fails, continue with 07 Roll back" when the guide declares a failure route.</summary>
+    public string FailureText => Model.OnFailure is { } id ? "If this step fails, continue with " + _owner.Describe(id) : string.Empty;
+
+    public bool HasNextText => NextText.Length > 0;
+
+    public bool HasFailureText => FailureText.Length > 0;
+
+    public bool HasFailureRoute => Model.OnFailure is not null;
+
+    /// <summary>The path-relevant state of this step (see <see cref="FlowPlanner"/>).</summary>
+    public StepFlowState Flow => Status switch
+    {
+        StepStatus.Done => new StepFlowState(FlowState.Done, _chosenTarget),
+        StepStatus.Failed => new StepFlowState(FlowState.Failed),
+        StepStatus.Skipped when !SkippedByBranch => new StepFlowState(FlowState.Skipped),
+        _ => new StepFlowState(FlowState.Open),
+    };
+
     public string TypeLabel => Type.ToString().ToUpperInvariant();
 
     public string ShellLabel => IsScript ? _owner.ShellName(Model) : string.Empty;
@@ -89,8 +128,12 @@ public sealed partial class StepViewModel : ObservableObject
     [ObservableProperty]
     private bool _skippedByCondition;
 
+    /// <summary>The step lies on a path the person did not take (another option of a choice, a jump over it).</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(CanRun), nameof(CanFinish), nameof(CanSkip))]
+    private bool _skippedByBranch;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanRun), nameof(CanFinish), nameof(CanSkip), nameof(CanChoose))]
     private bool _isBlocked;
 
     [ObservableProperty]
@@ -139,7 +182,10 @@ public sealed partial class StepViewModel : ObservableObject
 
     public bool CanFinish => (IsManual || IsInfo) && !IsBlocked && !IsDone;
 
-    public bool CanNext => IsDone || IsSkipped;
+    /// <summary>Choice options can be picked (also again, to take another path) while the step is not blocked or skipped.</summary>
+    public bool CanChoose => IsChoice && !IsBlocked && !IsSkipped && !IsRunning;
+
+    public bool CanNext => IsDone || IsSkipped || (IsFailed && HasFailureRoute);
 
     public bool CanSkip => !IsRunning && !IsDone && !IsSkipped && !IsBlocked;
 
@@ -155,7 +201,7 @@ public sealed partial class StepViewModel : ObservableObject
         StepStatus.Running => "RUNNING",
         StepStatus.Done => "DONE",
         StepStatus.Failed => "FAILED",
-        StepStatus.Skipped => SkippedByCondition ? "SKIPPED · CONDITION" : "SKIPPED",
+        StepStatus.Skipped => SkippedByBranch ? "SKIPPED · BRANCH" : SkippedByCondition ? "SKIPPED · CONDITION" : "SKIPPED",
         _ => IsBlocked ? "WAITING" : "PENDING",
     };
 
@@ -172,6 +218,14 @@ public sealed partial class StepViewModel : ObservableObject
 
     partial void OnSkippedByConditionChanged(bool value) => OnPropertyChanged(nameof(StatusLabel));
 
+    partial void OnSkippedByBranchChanged(bool value) => OnPropertyChanged(nameof(StatusLabel));
+
+    partial void OnStatusChanged(StepStatus value)
+    {
+        OnPropertyChanged(nameof(CanChoose));
+        OnPropertyChanged(nameof(Flow));
+    }
+
     /// <summary>Recomputes the command preview, the parameter problems and the risk findings after a parameter changed.</summary>
     public void RefreshPlan()
     {
@@ -179,21 +233,31 @@ public sealed partial class StepViewModel : ObservableObject
             return;
         _plan = StepPlanner.Plan(_owner.Runbook!, Model, _owner.Variables!);
         Preview = _plan.MaskedScript;
+        InlineCode = _plan.InlineScript;
         WorkingDirectory = _plan.WorkingDirectory;
         Problems = _plan.Problems.ToArray();
         Risks = _plan.Risks.ToArray();
     }
 
-    /// <summary>Applies the step's <c>when</c> condition while the step has not been touched; true when the status changed.</summary>
-    public bool EvaluateCondition()
+    /// <summary>
+    /// Skips the step by itself while it has not been touched: when it lies on a path not taken (<paramref name="offPath"/>) or its
+    /// <c>when</c> condition is false. Undoes that when the reason is gone. True when the status changed.
+    /// </summary>
+    public bool ApplyAutoSkip(bool offPath)
     {
-        if (string.IsNullOrWhiteSpace(Model.When) || (Status != StepStatus.Pending && !(Status == StepStatus.Skipped && SkippedByCondition)))
+        var auto = Status == StepStatus.Skipped && (SkippedByCondition || SkippedByBranch);
+        if (Status != StepStatus.Pending && !auto)
             return false;
-        var applies = !Condition.TryParse(Model.When, out var condition, out _) || condition!.Evaluate(_owner.Variables!.Resolve);
-        var wanted = applies ? StepStatus.Pending : StepStatus.Skipped;
-        if (wanted == Status)
+
+        var byCondition = false;
+        if (!offPath && !string.IsNullOrWhiteSpace(Model.When))
+            byCondition = Condition.TryParse(Model.When, out var condition, out _) && !condition!.Evaluate(_owner.Variables!.Resolve);
+
+        var wanted = offPath || byCondition ? StepStatus.Skipped : StepStatus.Pending;
+        if (wanted == Status && SkippedByBranch == offPath && SkippedByCondition == byCondition)
             return false;
-        SkippedByCondition = !applies;
+        SkippedByBranch = offPath;
+        SkippedByCondition = byCondition;
         Status = wanted;
         return true;
     }
@@ -238,6 +302,7 @@ public sealed partial class StepViewModel : ObservableObject
     {
         ConfirmPending = false;
         SkippedByCondition = false;
+        SkippedByBranch = false;
         Status = StepStatus.Skipped;
         Verdict = "Skipped by you.";
         AppLog.For("run").Information("Step {Step} skipped", Id);
@@ -269,8 +334,28 @@ public sealed partial class StepViewModel : ObservableObject
         Verdict = string.Empty;
         RunInfo = string.Empty;
         SkippedByCondition = false;
+        SkippedByBranch = false;
+        _chosenTarget = null;
+        foreach (var option in Options)
+            option.IsChosen = false;
         Status = StepStatus.Pending;
         _owner.StepSettled(this, advance: false);
+    }
+
+    /// <summary>The person picked an answer of a choice step: the path continues at its target and the other branches are skipped.</summary>
+    public void Choose(OptionViewModel option)
+    {
+        if (!CanChoose)
+            return;
+        _chosenTarget = option.Model.Goto;
+        foreach (var other in Options)
+            other.IsChosen = ReferenceEquals(other, option);
+        Verdict = $"You chose: {option.Model.Label}.";
+        RunInfo = "continues with " + _owner.Describe(option.Model.Goto);
+        Status = StepStatus.Done;
+        OnPropertyChanged(nameof(Flow));
+        AppLog.For("run").Information("Step {Step} (choice): '{Option}' chosen, continues at {Target}", Id, option.Model.Label, option.Model.Goto);
+        _owner.StepSettled(this, advance: true);
     }
 
     /// <summary>Cancels a running step; used when the guide is closed or the window exits.</summary>
@@ -328,4 +413,33 @@ public sealed partial class StepViewModel : ObservableObject
         if (Output.Count == 1)
             OnPropertyChanged(nameof(HasOutput));
     }
+}
+
+/// <summary>One answer of a choice step, shown as a button.</summary>
+public sealed partial class OptionViewModel : ObservableObject
+{
+    private readonly StepViewModel _step;
+
+    public OptionViewModel(StepViewModel step, ChoiceOption model)
+    {
+        _step = step;
+        Model = model;
+        ChooseCommand = new RelayCommand(() => _step.Choose(this));
+    }
+
+    public ChoiceOption Model { get; }
+
+    public string Label => Model.Label;
+
+    public string? Description => Model.Description;
+
+    public bool HasDescription => !string.IsNullOrWhiteSpace(Model.Description);
+
+    /// <summary>Where this option leads, e.g. "continues with 05 Install".</summary>
+    public string TargetText => "continues with " + _step.Owner.Describe(Model.Goto);
+
+    public IRelayCommand ChooseCommand { get; }
+
+    [ObservableProperty]
+    private bool _isChosen;
 }

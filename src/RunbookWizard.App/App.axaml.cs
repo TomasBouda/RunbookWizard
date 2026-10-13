@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
@@ -57,7 +58,7 @@ public partial class App : Application
 
     /// <summary>
     /// Scripted UI channel (RUNBOOKWIZARD_AUTOMATION=&lt;port&gt;, see CLAUDE.md) with the player's own shortcuts on top of the
-    /// generic endpoints: <c>/do/page?arg=overview|parameters|logs</c>, <c>/do/open?arg=&lt;path&gt;</c> and <c>/do/select?arg=&lt;step id or number&gt;</c>.
+    /// generic endpoints: <c>/do/page?arg=overview|parameters|logs</c>, <c>/do/open?arg=&lt;path&gt;</c> and <c>/do/select?arg=&lt;step id or number&gt;</c> and <c>/do/choose?arg=&lt;option number or label&gt;</c> (answers the choice step on screen, like clicking its option).
     /// Running a step is not a shortcut: scripts click the Run button like a person does.
     /// </summary>
     private static UiAutomationServer? StartAutomation(IClassicDesktopStyleApplicationLifetime desktop, MainWindowViewModel viewModel)
@@ -80,6 +81,15 @@ public partial class App : Application
         {
             viewModel.SelectStep(arg ?? throw new ArgumentException("A step id or number is required"));
             return new { selected = viewModel.SelectedStep?.Id };
+        };
+        server.Actions["choose"] = (window, arg) =>
+        {
+            var step = viewModel.SelectedStep ?? throw new InvalidOperationException("No step is selected");
+            var option = (int.TryParse(arg, out var n) && n >= 1 && n <= step.Options.Count ? step.Options[n - 1] : null)
+                ?? step.Options.FirstOrDefault(o => string.Equals(o.Label, arg, StringComparison.OrdinalIgnoreCase))
+                ?? throw new ArgumentException($"The selected step has no option '{arg}' (use its number or label)");
+            option.ChooseCommand.Execute(null);
+            return new { chosen = option.Label, selected = viewModel.SelectedStep?.Id };
         };
         return server;
     }

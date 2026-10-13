@@ -12,6 +12,7 @@ public sealed class VariableViewModel : ObservableObject
     private readonly VariableStore _store;
     private readonly Action _changed;
     private string _error;
+    private string? _seen;
 
     public VariableViewModel(Variable model, VariableStore store, Action changed)
     {
@@ -20,6 +21,7 @@ public sealed class VariableViewModel : ObservableObject
         _changed = changed;
         Choices = model.Type == VariableType.Bool ? new List<string> { "true", "false" } : model.Choices;
         _error = store.Validate(model) ?? string.Empty;
+        _seen = store.Get(model.Name);
     }
 
     public Variable Model { get; }
@@ -56,10 +58,26 @@ public sealed class VariableViewModel : ObservableObject
             if (value == Value)
                 return;
             _store.Set(Model.Name, value);
+            _seen = _store.Get(Model.Name);
             OnPropertyChanged();
             Error = _store.Validate(Model) ?? string.Empty;
             _changed();
         }
+    }
+
+    /// <summary>Tells the views that the stored value may have changed behind this object's back (a step captured it).</summary>
+    public void Refresh()
+    {
+        if (string.Equals(_seen, _store.Get(Model.Name), StringComparison.Ordinal))
+            return;
+        _seen = _store.Get(Model.Name);
+        RefreshCore();
+    }
+
+    private void RefreshCore()
+    {
+        OnPropertyChanged(nameof(Value));
+        Error = _store.Validate(Model) ?? string.Empty;
     }
 
     public string Error
