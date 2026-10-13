@@ -1,0 +1,510 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:i="https://github.com/projektanker/icons.avalonia"
+        xmlns:vm="using:RunbookWizard.App.ViewModels"
+        xmlns:services="using:RunbookWizard.App.Services"
+        xmlns:exec="using:RunbookWizard.Core.Execution"
+        xmlns:sys="using:System"
+        xmlns:update="clr-namespace:TomLabs.AutoUpdate.Avalonia;assembly=TomLabs.AutoUpdate.Avalonia"
+        mc:Ignorable="d" d:DesignWidth="1280" d:DesignHeight="800"
+        x:Class="RunbookWizard.App.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Icon="/Assets/icon.ico"
+        Title="RunbookWizard"
+        Width="1280" Height="800"
+        MinWidth="900" MinHeight="560"
+        WindowStartupLocation="CenterScreen"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaTitleBarHeightHint="44">
+
+  <Window.KeyBindings>
+    <KeyBinding Gesture="Ctrl+O" Command="{Binding OpenFileCommand}" />
+    <KeyBinding Gesture="Ctrl+L" Command="{Binding ToggleLogsCommand}" />
+    <KeyBinding Gesture="Ctrl+Shift+L" Command="{Binding CycleThemeCommand}" />
+  </Window.KeyBindings>
+
+  <!-- A maximized window with an extended client area hangs past the screen edge; OffScreenMargin pulls the content back in. -->
+  <Panel Margin="{Binding $parent[Window].OffScreenMargin}">
+    <Grid RowDefinitions="44,*,Auto">
+
+      <!-- ===== Header / title bar ===== -->
+      <Border Grid.Row="0" Classes="hairline-b" Padding="14,0,150,0" Name="HeaderBar" Background="Transparent" PointerPressed="OnHeaderPointerPressed">
+        <Grid ColumnDefinitions="Auto,12,360,*,Auto,Auto,Auto,12,Auto" VerticalAlignment="Center">
+          <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+            <i:Icon Value="fa-solid fa-list-check" FontSize="14" Foreground="{DynamicResource LogoBrush}" />
+            <TextBlock Text="RunbookWizard" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
+          </StackPanel>
+
+          <Button Grid.Column="2" Name="PaletteButton" Click="OnPaletteButtonClick"
+                  HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                  Padding="10,5" Background="{DynamicResource PanelBrush}"
+                  BorderBrush="{DynamicResource HairlineStrongBrush}"
+                  ToolTip.Tip="Jump to a step, page or action (Ctrl+K)">
+            <Grid ColumnDefinitions="Auto,8,*,Auto">
+              <i:Icon Grid.Column="0" Value="fa-solid fa-magnifying-glass" FontSize="11" Foreground="{DynamicResource TextMutedBrush}" />
+              <TextBlock Grid.Column="2" Text="Jump to a step or action…" Classes="muted" VerticalAlignment="Center" />
+              <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="4">
+                <Border Classes="kbd"><TextBlock Text="Ctrl" /></Border>
+                <Border Classes="kbd"><TextBlock Text="K" /></Border>
+              </StackPanel>
+            </Grid>
+          </Button>
+
+          <TextBlock Grid.Column="3" Classes="mono muted" FontSize="11" Text="{Binding GuideTitle}" Margin="12,0,0,0" HorizontalAlignment="Right" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+          <Button Grid.Column="4" Name="OpenButton" Classes="icon" Command="{Binding OpenFileCommand}" ToolTip.Tip="Open a guide (Ctrl+O)">
+            <i:Icon Value="fa-solid fa-folder-open" FontSize="13" />
+          </Button>
+          <Button Grid.Column="5" Name="LogsButton" Classes="icon" Command="{Binding ToggleLogsCommand}" ToolTip.Tip="Logs (Ctrl+L)">
+            <i:Icon Value="fa-solid fa-scroll" FontSize="12" />
+          </Button>
+          <Button Grid.Column="6" Name="ThemeButton" Classes="icon" Command="{Binding CycleThemeCommand}" ToolTip.Tip="{Binding ThemeTip}">
+            <i:Icon Value="{Binding ThemeIcon}" FontSize="13" />
+          </Button>
+          <TextBlock Grid.Column="8" Name="VersionText" Classes="mono muted" FontSize="11" Text="{Binding Version, StringFormat='v{0}'}" VerticalAlignment="Center" />
+        </Grid>
+      </Border>
+
+      <!-- ===== Body ===== -->
+      <Grid Grid.Row="1" ColumnDefinitions="Auto,*">
+
+        <!-- Sidebar: the guide, its progress and the steps in order -->
+        <Border Grid.Column="0" Classes="hairline-r" Width="290" IsVisible="{Binding HasGuide}">
+          <DockPanel>
+            <Border DockPanel.Dock="Bottom" Classes="hairline-t" Padding="14,10">
+              <StackPanel Spacing="6">
+                <Grid ColumnDefinitions="*,Auto">
+                  <TextBlock Classes="muted" FontSize="11" Text="Jump to a step" />
+                  <Border Grid.Column="1" Classes="kbd"><TextBlock Text="Ctrl+K" /></Border>
+                </Grid>
+                <Grid ColumnDefinitions="*,Auto">
+                  <TextBlock Classes="muted" FontSize="11" Text="Open a guide" />
+                  <Border Grid.Column="1" Classes="kbd"><TextBlock Text="Ctrl+O" /></Border>
+                </Grid>
+                <Grid ColumnDefinitions="*,Auto">
+                  <TextBlock Classes="muted" FontSize="11" Text="Logs" />
+                  <Border Grid.Column="1" Classes="kbd"><TextBlock Text="Ctrl+L" /></Border>
+                </Grid>
+              </StackPanel>
+            </Border>
+
+            <StackPanel DockPanel.Dock="Top" Margin="14,12,14,8" Spacing="6">
+              <TextBlock Text="{Binding GuideTitle}" FontSize="13" FontWeight="SemiBold" TextWrapping="Wrap" />
+              <ProgressBar Value="{Binding ProgressPercent}" Minimum="0" Maximum="100" Height="3" IsVisible="{Binding IsRunnable}" />
+              <TextBlock Classes="mono muted" FontSize="10.5" Text="{Binding ProgressText}" />
+            </StackPanel>
+
+            <StackPanel DockPanel.Dock="Top">
+              <Button Name="OverviewRow" Classes="navrow" Classes.active="{Binding OverviewSelected}" Command="{Binding ShowOverviewPageCommand}">
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                  <i:Icon Value="fa-solid fa-circle-info" FontSize="12" Foreground="{DynamicResource TextMutedBrush}" />
+                  <TextBlock Text="Overview" FontSize="12.5" />
+                </StackPanel>
+              </Button>
+              <Button Name="ParametersRow" Classes="navrow" Classes.active="{Binding ParametersSelected}" Command="{Binding ShowParametersPageCommand}" IsVisible="{Binding HasParameters}">
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                  <i:Icon Value="fa-solid fa-sliders" FontSize="12" Foreground="{DynamicResource TextMutedBrush}" />
+                  <TextBlock Text="Parameters" FontSize="12.5" />
+                </StackPanel>
+              </Button>
+              <TextBlock Classes="section" Text="STEPS" Margin="14,12,14,4" />
+            </StackPanel>
+
+            <ListBox Name="StepsList" Classes="rows" ItemsSource="{Binding Steps}" SelectedItem="{Binding SelectedStep}">
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:StepViewModel">
+                  <Grid ColumnDefinitions="20,*,Auto">
+                    <i:Icon Grid.Column="0" Classes="status" Value="{Binding StatusIcon}" VerticalAlignment="Center" HorizontalAlignment="Left"
+                            Classes.running="{Binding IsRunning}" Classes.done="{Binding IsDone}" Classes.failed="{Binding IsFailed}" Classes.skipped="{Binding IsSkipped}" />
+                    <StackPanel Grid.Column="1" Margin="4,0,0,0" Spacing="1">
+                      <TextBlock FontSize="12.5" TextTrimming="CharacterEllipsis" Text="{Binding Title}" ToolTip.Tip="{Binding Title}" />
+                      <TextBlock Classes="mono muted" FontSize="10.5" Text="{Binding Subtitle}" />
+                    </StackPanel>
+                    <TextBlock Grid.Column="2" Classes="mono faint" FontSize="10.5" Text="{Binding Number}" VerticalAlignment="Center" />
+                  </Grid>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+          </DockPanel>
+        </Border>
+
+        <!-- Content -->
+        <Panel Grid.Column="1">
+
+          <!-- Welcome: nothing open yet -->
+          <ScrollViewer IsVisible="{Binding ShowWelcome}">
+            <StackPanel MaxWidth="640" Margin="24,56,24,24" Spacing="22" HorizontalAlignment="Center" Classes="fade-in">
+              <StackPanel Spacing="8">
+                <Image Source="/Assets/icon.png" Width="56" Height="56" HorizontalAlignment="Left" />
+                <TextBlock Classes="title" FontSize="22" Text="RunbookWizard" />
+                <TextBlock Classes="secondary" TextWrapping="Wrap" FontSize="13"
+                           Text="Walks you through a procedure step by step. Every step says why it exists, shows the exact command and runs it only when you click." />
+              </StackPanel>
+              <Button Name="WelcomeOpenButton" Classes="accent" HorizontalAlignment="Left" Command="{Binding OpenFileCommand}">
+                <StackPanel><i:Icon Value="fa-solid fa-folder-open" FontSize="10" /><TextBlock Text="Open a guide…" /></StackPanel>
+              </Button>
+              <StackPanel Spacing="4" IsVisible="{Binding HasRecent}">
+                <TextBlock Classes="section" Text="RECENT" />
+                <ItemsControl ItemsSource="{Binding RecentGuides}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:GuideLink">
+                      <Button Classes="navrow" Padding="0,7" Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).OpenGuideCommand}" CommandParameter="{Binding}">
+                        <Grid RowDefinitions="Auto,Auto">
+                          <TextBlock Text="{Binding Title}" FontSize="12.5" />
+                          <TextBlock Grid.Row="1" Classes="mono muted" FontSize="10.5" Text="{Binding Hint}" TextTrimming="CharacterEllipsis" />
+                        </Grid>
+                      </Button>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+              <StackPanel Spacing="4">
+                <TextBlock Classes="section" Text="EXAMPLES" />
+                <ItemsControl Name="ExamplesList" ItemsSource="{Binding ExampleGuides}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:GuideLink">
+                      <Button Classes="navrow" Padding="0,7" Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).OpenGuideCommand}" CommandParameter="{Binding}">
+                        <Grid RowDefinitions="Auto,Auto">
+                          <TextBlock Text="{Binding Title}" FontSize="12.5" />
+                          <TextBlock Grid.Row="1" Classes="mono muted" FontSize="10.5" Text="{Binding Hint}" />
+                        </Grid>
+                      </Button>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+            </StackPanel>
+          </ScrollViewer>
+
+          <!-- Overview -->
+          <ScrollViewer IsVisible="{Binding ShowOverview}">
+            <StackPanel Margin="24,20,24,24" Spacing="16" MaxWidth="820" HorizontalAlignment="Left" Classes="fade-in">
+              <StackPanel Spacing="6">
+                <TextBlock Classes="section" Text="GUIDE" />
+                <TextBlock Classes="title" FontSize="20" Text="{Binding GuideTitle}" TextWrapping="Wrap" />
+                <TextBlock Classes="mono muted" FontSize="11" Text="{Binding GuideMeta}" IsVisible="{Binding GuideMeta, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+              </StackPanel>
+              <SelectableTextBlock Classes="prose secondary" Text="{Binding GuideDescription}" IsVisible="{Binding GuideDescription, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+
+              <Border Classes="notice ok" IsVisible="{Binding IsFinished}">
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                  <i:Icon Value="fa-solid fa-circle-check" FontSize="14" Foreground="{DynamicResource RunningBrush}" />
+                  <TextBlock Text="Every step is done or skipped. The guide is finished." VerticalAlignment="Center" />
+                </StackPanel>
+              </Border>
+
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Name="StartButton" Classes="accent" Command="{Binding StartCommand}" IsEnabled="{Binding IsRunnable}">
+                  <StackPanel><i:Icon Value="fa-solid fa-play" FontSize="10" /><TextBlock Text="Start or continue" /></StackPanel>
+                </Button>
+                <Button Command="{Binding ReloadCommand}" ToolTip.Tip="Read the file again; progress is reset">
+                  <StackPanel><i:Icon Value="fa-solid fa-rotate" FontSize="10" /><TextBlock Text="Reload" /></StackPanel>
+                </Button>
+              </StackPanel>
+
+              <StackPanel Spacing="6" IsVisible="{Binding HasDiagnostics}">
+                <TextBlock Classes="section" Text="CHECKED BEFORE OPENING" />
+                <ItemsControl ItemsSource="{Binding Diagnostics}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:DiagnosticItem">
+                      <Border Classes="notice" Classes.error="{Binding IsError}" Margin="0,0,0,6">
+                        <Grid ColumnDefinitions="Auto,12,*">
+                          <TextBlock Classes="mono" FontSize="10.5" Text="{Binding SeverityLabel}" VerticalAlignment="Top" Margin="0,2,0,0" />
+                          <StackPanel Grid.Column="2" Spacing="2">
+                            <TextBlock Text="{Binding Message}" TextWrapping="Wrap" />
+                            <TextBlock Classes="mono muted" FontSize="10.5" Text="{Binding Where}" IsVisible="{Binding Where, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                          </StackPanel>
+                        </Grid>
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+            </StackPanel>
+          </ScrollViewer>
+
+          <!-- Parameters -->
+          <ScrollViewer IsVisible="{Binding ShowParameters}">
+            <StackPanel Margin="24,20,24,24" Spacing="14" MaxWidth="720" HorizontalAlignment="Left" Classes="fade-in">
+              <StackPanel Spacing="4">
+                <TextBlock Classes="section" Text="PARAMETERS" />
+                <TextBlock Classes="secondary" TextWrapping="Wrap"
+                           Text="Enter the values once; every command that uses them is updated. Secrets are masked and never saved." />
+              </StackPanel>
+              <ItemsControl Name="ParametersList" ItemsSource="{Binding Parameters}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:VariableViewModel">
+                    <Border Classes="card" Margin="0,0,0,10" Padding="14,12">
+                      <StackPanel Spacing="6">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                          <TextBlock Text="{Binding Label}" FontWeight="Medium" FontSize="13" />
+                          <TextBlock Text="required" Classes="muted" FontSize="10.5" VerticalAlignment="Center" IsVisible="{Binding Required}" />
+                          <TextBlock Text="{Binding Placeholder}" Classes="mono muted" FontSize="10.5" VerticalAlignment="Center" />
+                        </StackPanel>
+                        <TextBlock Classes="secondary" TextWrapping="Wrap" Text="{Binding Description}" IsVisible="{Binding HasDescription}" />
+                        <TextBox Classes="mono" Text="{Binding Value}" PasswordChar="{Binding PasswordChar}" IsVisible="{Binding IsText}" />
+                        <ComboBox ItemsSource="{Binding Choices}" SelectedItem="{Binding Value}" IsVisible="{Binding IsChoice}" MinWidth="220" />
+                        <TextBlock Classes="error" FontSize="11.5" TextWrapping="Wrap" Text="{Binding Error}" IsVisible="{Binding HasError}" />
+                      </StackPanel>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+          </ScrollViewer>
+
+          <!-- Step -->
+          <ScrollViewer IsVisible="{Binding ShowStep}" Name="StepScroll">
+            <StackPanel Margin="24,20,24,28" Spacing="14" MaxWidth="860" HorizontalAlignment="Left" DataContext="{Binding SelectedStep}" x:DataType="vm:StepViewModel" Classes="fade-in">
+              <StackPanel Spacing="6">
+                <TextBlock Classes="section" Text="{Binding Number, StringFormat='STEP {0}'}" />
+                <TextBlock Name="StepTitle" Classes="title" FontSize="20" Text="{Binding Title}" TextWrapping="Wrap" />
+                <WrapPanel Orientation="Horizontal">
+                  <Border Classes="chip" Margin="0,0,6,4" Classes.running="{Binding IsDone}" Classes.error="{Binding IsFailed}" Classes.accent="{Binding IsRunning}">
+                    <TextBlock Name="StatusChip" Text="{Binding StatusLabel}" />
+                  </Border>
+                  <Border Classes="chip" Margin="0,0,6,4"><TextBlock Text="{Binding TypeLabel}" /></Border>
+                  <Border Classes="chip" Margin="0,0,6,4" IsVisible="{Binding IsScript}"><TextBlock Text="{Binding ShellLabel}" /></Border>
+                  <Border Classes="chip error" Margin="0,0,6,4" IsVisible="{Binding IsDestructive}"><TextBlock Text="DESTRUCTIVE" /></Border>
+                  <Border Classes="chip warn" Margin="0,0,6,4" IsVisible="{Binding IsElevated}"><TextBlock Text="NEEDS ADMINISTRATOR" /></Border>
+                </WrapPanel>
+              </StackPanel>
+
+              <Border Classes="notice" IsVisible="{Binding HasWarning}">
+                <Grid ColumnDefinitions="Auto,10,*">
+                  <i:Icon Value="fa-solid fa-triangle-exclamation" FontSize="13" Foreground="{DynamicResource WarnBrush}" VerticalAlignment="Top" Margin="0,2,0,0" />
+                  <TextBlock Grid.Column="2" Text="{Binding Warning}" TextWrapping="Wrap" />
+                </Grid>
+              </Border>
+
+              <SelectableTextBlock Classes="prose" Text="{Binding Description}" IsVisible="{Binding HasDescription}" />
+
+              <Border Classes="card" Padding="14,10" IsVisible="{Binding HasWhy}">
+                <StackPanel Spacing="4">
+                  <TextBlock Classes="section" Text="WHY" />
+                  <SelectableTextBlock Classes="prose secondary" Text="{Binding Why}" />
+                </StackPanel>
+              </Border>
+
+              <StackPanel Spacing="6" IsVisible="{Binding IsScript}">
+                <Grid ColumnDefinitions="Auto,16,*">
+                  <TextBlock Classes="section" Text="COMMAND" VerticalAlignment="Center" />
+                  <TextBlock Grid.Column="2" Classes="mono muted" FontSize="10.5" HorizontalAlignment="Right" TextTrimming="CharacterEllipsis"
+                             Text="{Binding WorkingDirectory, StringFormat='runs in {0}'}" ToolTip.Tip="{Binding WorkingDirectory}" />
+                </Grid>
+                <Border Classes="command">
+                  <SelectableTextBlock Name="CommandText" Text="{Binding Preview}" />
+                </Border>
+              </StackPanel>
+
+              <Border Classes="notice error" IsVisible="{Binding HasProblems}">
+                <StackPanel Spacing="3">
+                  <TextBlock Classes="section" Text="CANNOT RUN YET" />
+                  <ItemsControl ItemsSource="{Binding Problems}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="sys:String"><TextBlock Text="{Binding}" TextWrapping="Wrap" /></DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
+              </Border>
+
+              <Border Classes="notice" IsVisible="{Binding HasRisks}">
+                <StackPanel Spacing="3">
+                  <TextBlock Classes="section" Text="LOOK BEFORE YOU RUN" />
+                  <ItemsControl ItemsSource="{Binding Risks}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="sys:String"><TextBlock Text="{Binding ., StringFormat='This command {0}.'}" TextWrapping="Wrap" /></DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
+              </Border>
+
+              <Border Classes="notice error" IsVisible="{Binding ConfirmPending}">
+                <StackPanel Spacing="8">
+                  <TextBlock Text="This step is marked destructive. Check the command above, then confirm." TextWrapping="Wrap" FontWeight="Medium" />
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Button Name="ConfirmRunButton" Classes="danger" Command="{Binding ConfirmRunCommand}">
+                      <StackPanel><i:Icon Value="fa-solid fa-play" FontSize="10" /><TextBlock Text="Yes, run it" /></StackPanel>
+                    </Button>
+                    <Button Name="CancelConfirmButton" Command="{Binding CancelConfirmCommand}"><TextBlock Text="Cancel" /></Button>
+                  </StackPanel>
+                </StackPanel>
+              </Border>
+
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Name="RunButton" Classes="accent" Command="{Binding RunCommand}" IsVisible="{Binding IsScript}" IsEnabled="{Binding CanRun}">
+                  <StackPanel><i:Icon Value="fa-solid fa-play" FontSize="10" /><TextBlock Text="{Binding RunLabel}" /></StackPanel>
+                </Button>
+                <Button Name="StopButton" Command="{Binding StopCommand}" IsVisible="{Binding IsRunning}">
+                  <StackPanel><i:Icon Value="fa-solid fa-stop" FontSize="10" /><TextBlock Text="Stop" /></StackPanel>
+                </Button>
+                <Button Name="FinishButton" Classes="accent" Command="{Binding FinishCommand}" IsVisible="{Binding CanFinish}">
+                  <StackPanel><i:Icon Value="fa-solid fa-check" FontSize="10" /><TextBlock Text="{Binding ConfirmText}" /></StackPanel>
+                </Button>
+                <Button Name="NextButton" Classes="accent" Command="{Binding NextCommand}" IsVisible="{Binding CanNext}">
+                  <StackPanel><TextBlock Text="Next step" /><i:Icon Value="fa-solid fa-arrow-right" FontSize="10" /></StackPanel>
+                </Button>
+                <Button Name="SkipButton" Command="{Binding SkipCommand}" IsVisible="{Binding CanSkip}">
+                  <StackPanel><i:Icon Value="fa-solid fa-forward" FontSize="10" /><TextBlock Text="Skip" /></StackPanel>
+                </Button>
+                <Button Name="ResetButton" Command="{Binding ResetCommand}" IsVisible="{Binding !IsPending}" IsEnabled="{Binding !IsRunning}" ToolTip.Tip="Set the step back to pending">
+                  <StackPanel><i:Icon Value="fa-solid fa-rotate-left" FontSize="10" /><TextBlock Text="Reset" /></StackPanel>
+                </Button>
+              </StackPanel>
+              <TextBlock Classes="muted" FontSize="11.5" IsVisible="{Binding IsBlocked}" TextWrapping="Wrap"
+                         Text="Finish or skip the steps before this one first." />
+
+              <Border Classes="notice" IsVisible="{Binding HasVerdict}" Classes.ok="{Binding IsDone}" Classes.error="{Binding IsFailed}">
+                <StackPanel Spacing="3">
+                  <TextBlock Name="VerdictText" Text="{Binding Verdict}" TextWrapping="Wrap" FontWeight="Medium" />
+                  <TextBlock Classes="mono muted" FontSize="10.5" Text="{Binding RunInfo}" />
+                </StackPanel>
+              </Border>
+
+              <StackPanel Spacing="6" IsVisible="{Binding HasOutput}">
+                <TextBlock Classes="section" Text="OUTPUT" />
+                <Border Classes="output">
+                  <ScrollViewer Name="OutputScroll" MaxHeight="360" HorizontalScrollBarVisibility="Disabled">
+                    <ItemsControl Name="OutputList" ItemsSource="{Binding Output}">
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="exec:OutputLine">
+                          <TextBlock Classes="out" Classes.err="{Binding IsError}" Text="{Binding Text}" />
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </ScrollViewer>
+                </Border>
+              </StackPanel>
+            </StackPanel>
+          </ScrollViewer>
+
+          <!-- Logs page -->
+          <Grid RowDefinitions="Auto,*,Auto" IsVisible="{Binding ShowLogs}">
+            <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="18,14,18,10" Classes="fade-in">
+              <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                <TextBlock Classes="title" Text="Logs" />
+                <TextBlock Classes="mono muted" FontSize="11" Text="{Binding Logs.Lines.Count}" VerticalAlignment="Center" />
+              </StackPanel>
+              <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                <ComboBox MinWidth="120" ItemsSource="{Binding Logs.Levels}" SelectedItem="{Binding Logs.MinimumLevel}" ToolTip.Tip="Minimum level" />
+                <TextBox MinWidth="200" Text="{Binding Logs.Filter}" Watermark="Filter text or source…" />
+                <Button Command="{Binding Logs.ClearCommand}" ToolTip.Tip="Clear the live buffer">
+                  <StackPanel><i:Icon Value="fa-solid fa-eraser" FontSize="10" /><TextBlock Text="Clear" /></StackPanel>
+                </Button>
+                <Button Command="{Binding Logs.OpenFolderCommand}" ToolTip.Tip="{Binding Logs.Directory}">
+                  <StackPanel><i:Icon Value="fa-solid fa-folder-open" FontSize="10" /><TextBlock Text="Log folder" /></StackPanel>
+                </Button>
+                <Button Command="{Binding ToggleLogsCommand}" ToolTip.Tip="Back (Ctrl+L)">
+                  <StackPanel><i:Icon Value="fa-solid fa-arrow-left" FontSize="10" /><TextBlock Text="Back" /></StackPanel>
+                </Button>
+              </StackPanel>
+            </Grid>
+
+            <Border Grid.Row="1" Classes="table" Margin="18,0,18,10">
+              <DockPanel>
+                <Border DockPanel.Dock="Top" Classes="tablehead">
+                  <Grid ColumnDefinitions="70,44,120,*">
+                    <TextBlock Grid.Column="0" Classes="section" Text="TIME" />
+                    <TextBlock Grid.Column="1" Classes="section" Text="LVL" />
+                    <TextBlock Grid.Column="2" Classes="section" Text="SOURCE" />
+                    <TextBlock Grid.Column="3" Classes="section" Text="MESSAGE" />
+                  </Grid>
+                </Border>
+                <ListBox Classes="rows compact" ItemsSource="{Binding Logs.Lines}" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                  <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="services:LogLine">
+                      <Grid ColumnDefinitions="70,44,120,*">
+                        <TextBlock Grid.Column="0" Classes="mono muted" FontSize="11" Text="{Binding TimeText}" VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="1" Classes="mono" FontSize="10" Text="{Binding LevelText}" VerticalAlignment="Center"
+                                   Classes.error="{Binding IsError}" Classes.accent="{Binding IsWarning}" />
+                        <TextBlock Grid.Column="2" Classes="mono muted" FontSize="11" Text="{Binding Source}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Grid.Column="3" FontSize="11.5" Text="{Binding Message}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Message}" />
+                      </Grid>
+                    </DataTemplate>
+                  </ListBox.ItemTemplate>
+                </ListBox>
+              </DockPanel>
+            </Border>
+
+            <Border Grid.Row="2" Classes="card" Margin="18,0,18,14" Padding="12,8">
+              <Grid ColumnDefinitions="Auto,10,Auto,10,*,Auto" RowDefinitions="Auto,Auto">
+                <TextBlock Grid.Row="0" Grid.Column="0" Classes="section" Text="LOG FILES" VerticalAlignment="Center" />
+                <ComboBox Grid.Row="0" Grid.Column="2" MinWidth="260" ItemsSource="{Binding Logs.Files}" SelectedItem="{Binding Logs.SelectedFile}" DisplayMemberBinding="{Binding Name}" />
+                <StackPanel Grid.Row="0" Grid.Column="5" Orientation="Horizontal" Spacing="4">
+                  <Button Classes="icon" Command="{Binding Logs.ReloadFilesCommand}" ToolTip.Tip="Reload"><i:Icon Value="fa-solid fa-rotate" FontSize="12" /></Button>
+                  <Button Classes="icon" Command="{Binding Logs.OpenFileCommand}" ToolTip.Tip="Open the file"><i:Icon Value="fa-solid fa-arrow-up-right-from-square" FontSize="12" /></Button>
+                </StackPanel>
+                <ScrollViewer Grid.Row="1" Grid.ColumnSpan="6" MaxHeight="160" Margin="0,8,0,0">
+                  <SelectableTextBlock Classes="mono" FontSize="10.5" Text="{Binding Logs.Tail}" Foreground="{DynamicResource TextSecondaryBrush}" />
+                </ScrollViewer>
+              </Grid>
+            </Border>
+          </Grid>
+        </Panel>
+      </Grid>
+
+      <!-- ===== Status bar ===== -->
+      <Border Grid.Row="2" Classes="hairline-t" Padding="18,6">
+        <Grid ColumnDefinitions="*,Auto,12,Auto">
+          <TextBlock Grid.Column="0" Name="StatusLine" Classes="muted" FontSize="11" Text="{Binding StatusText}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+          <update:UpdateBanner Grid.Column="1" VerticalAlignment="Center" />
+          <TextBlock Grid.Column="3" Classes="mono muted" FontSize="11" Text="{Binding DataDirectory}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="360" ToolTip.Tip="{Binding DataDirectory}" />
+        </Grid>
+      </Border>
+    </Grid>
+
+    <!-- ===== Command palette (Ctrl+K) ===== -->
+    <Panel IsVisible="{Binding Palette.IsOpen}">
+      <Border Classes="scrim" PointerPressed="OnScrimPressed" />
+      <Border Classes="popin" Width="600" VerticalAlignment="Top" Margin="0,96,0,0"
+              Background="{DynamicResource BgElevatedBrush}"
+              BorderBrush="{DynamicResource HairlineStrongBrush}" BorderThickness="1" CornerRadius="8"
+              BoxShadow="0 24 60 0 #80000000">
+        <Border CornerRadius="8" ClipToBounds="True">
+          <DockPanel>
+            <Border DockPanel.Dock="Top" Classes="hairline-b" Padding="14,8">
+              <Grid ColumnDefinitions="Auto,10,*,Auto">
+                <i:Icon Grid.Column="0" Value="fa-solid fa-magnifying-glass" FontSize="12" Foreground="{DynamicResource TextMutedBrush}" />
+                <TextBox Grid.Column="2" Name="PaletteBox" Classes="bare mono" FontSize="13"
+                         Watermark="Type a step, page or action…"
+                         Text="{Binding Palette.Query}" />
+                <Border Grid.Column="3" Classes="kbd"><TextBlock Text="Esc" /></Border>
+              </Grid>
+            </Border>
+            <Border DockPanel.Dock="Bottom" Classes="hairline-t" Padding="14,7">
+              <StackPanel Orientation="Horizontal" Spacing="14">
+                <StackPanel Orientation="Horizontal" Spacing="5">
+                  <Border Classes="kbd"><TextBlock Text="↑↓" /></Border>
+                  <TextBlock Classes="muted" FontSize="10.5" Text="navigate" VerticalAlignment="Center" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="5">
+                  <Border Classes="kbd"><TextBlock Text="↵" /></Border>
+                  <TextBlock Classes="muted" FontSize="10.5" Text="go" VerticalAlignment="Center" />
+                </StackPanel>
+                <TextBlock Classes="muted" FontSize="10.5" Text="the palette never runs a step" VerticalAlignment="Center" />
+              </StackPanel>
+            </Border>
+            <ListBox Name="PaletteList" Classes="rows compact" MaxHeight="440" Margin="0,4"
+                     ItemsSource="{Binding Palette.Items}"
+                     SelectedItem="{Binding Palette.SelectedItem}">
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:PaletteItem">
+                  <Grid ColumnDefinitions="18,10,Auto,10,*,Auto,10,Auto">
+                    <i:Icon Grid.Column="0" Value="{Binding Icon}" FontSize="12" Foreground="{DynamicResource TextMutedBrush}" HorizontalAlignment="Center" />
+                    <TextBlock Grid.Column="2" Text="{Binding Title}" FontSize="12.5" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="4" Classes="muted" FontSize="11" Text="{Binding Hint}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="5" Classes="faint" FontSize="10.5" Text="{Binding Group}" VerticalAlignment="Center" />
+                    <Border Grid.Column="7" Classes="kbd" IsVisible="{Binding Shortcut, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                      <TextBlock Text="{Binding Shortcut}" />
+                    </Border>
+                  </Grid>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+          </DockPanel>
+        </Border>
+      </Border>
+    </Panel>
+  </Panel>
+</Window>

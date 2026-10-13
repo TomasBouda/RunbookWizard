@@ -1,0 +1,112 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!--
+        Design tokens for the "ops console" look. Every colour used by the app comes from here so the
+        dark and light palettes stay in sync; the light variant is a deliberate palette, not an inversion.
+    -->
+
+    <FontFamily x:Key="UiFont">Segoe UI Variable Text, Segoe UI, Inter, sans-serif</FontFamily>
+    <FontFamily x:Key="MonoFont">Cascadia Mono, Cascadia Code, JetBrains Mono, Consolas, monospace</FontFamily>
+
+    <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Dark">
+            <Color x:Key="BgColor">#0B0C10</Color>
+            <Color x:Key="BgEditorColor">#0E0F14</Color>
+            <Color x:Key="BgElevatedColor">#111218</Color>
+            <Color x:Key="PanelColor">#05FFFFFF</Color>
+            <Color x:Key="HairlineColor">#14FFFFFF</Color>
+            <Color x:Key="HairlineStrongColor">#33FFFFFF</Color>
+            <Color x:Key="HoverColor">#0AFFFFFF</Color>
+            <Color x:Key="SelectedColor">#0DFFFFFF</Color>
+            <Color x:Key="ActiveColor">#1AFFFFFF</Color>
+            <Color x:Key="TextColor">#E6E7EB</Color>
+            <Color x:Key="TextSecondaryColor">#9A9CA6</Color>
+            <Color x:Key="TextMutedColor">#6F7280</Color>
+            <Color x:Key="TextFaintColor">#3F4250</Color>
+            <Color x:Key="AccentColor">#2DD4BF</Color>
+            <Color x:Key="AccentSoftColor">#1A2DD4BF</Color>
+            <Color x:Key="AccentBorderColor">#592DD4BF</Color>
+            <Color x:Key="RunningColor">#34D399</Color>
+            <Color x:Key="RunningSoftColor">#1F34D399</Color>
+            <Color x:Key="WarnColor">#FBBF24</Color>
+            <Color x:Key="ErrorColor">#F87171</Color>
+            <Color x:Key="ErrorSoftColor">#14F87171</Color>
+            <Color x:Key="StoppedColor">#4B4F5C</Color>
+            <Color x:Key="ScrimColor">#9E05060A</Color>
+            <Color x:Key="ShadowColor">#99000000</Color>
+        </ResourceDictionary>
+
+        <ResourceDictionary x:Key="Light">
+            <Color x:Key="BgColor">#F5F5F7</Color>
+            <Color x:Key="BgEditorColor">#FFFFFF</Color>
+            <Color x:Key="BgElevatedColor">#FFFFFF</Color>
+            <Color x:Key="PanelColor">#E6FFFFFF</Color>
+            <Color x:Key="HairlineColor">#17000000</Color>
+            <Color x:Key="HairlineStrongColor">#38000000</Color>
+            <Color x:Key="HoverColor">#0A000000</Color>
+            <Color x:Key="SelectedColor">#0F000000</Color>
+            <Color x:Key="ActiveColor">#1F000000</Color>
+            <Color x:Key="TextColor">#16171D</Color>
+            <Color x:Key="TextSecondaryColor">#5C5F6B</Color>
+            <Color x:Key="TextMutedColor">#6F7280</Color>
+            <Color x:Key="TextFaintColor">#B0B3BE</Color>
+            <Color x:Key="AccentColor">#0F766E</Color>
+            <Color x:Key="AccentSoftColor">#1A0F766E</Color>
+            <Color x:Key="AccentBorderColor">#660F766E</Color>
+            <Color x:Key="RunningColor">#16A34A</Color>
+            <Color x:Key="RunningSoftColor">#1F16A34A</Color>
+            <Color x:Key="WarnColor">#B45309</Color>
+            <Color x:Key="ErrorColor">#DC2626</Color>
+            <Color x:Key="ErrorSoftColor">#14DC2626</Color>
+            <Color x:Key="StoppedColor">#B8BAC4</Color>
+            <Color x:Key="ScrimColor">#66F5F5F7</Color>
+            <Color x:Key="ShadowColor">#33000000</Color>
+        </ResourceDictionary>
+    </ResourceDictionary.ThemeDictionaries>
+
+    <!-- Brushes resolve the theme-specific colours above; styles bind to these. -->
+    <SolidColorBrush x:Key="BgBrush" Color="{DynamicResource BgColor}"/>
+    <SolidColorBrush x:Key="BgEditorBrush" Color="{DynamicResource BgEditorColor}"/>
+    <SolidColorBrush x:Key="BgElevatedBrush" Color="{DynamicResource BgElevatedColor}"/>
+    <SolidColorBrush x:Key="PanelBrush" Color="{DynamicResource PanelColor}"/>
+    <SolidColorBrush x:Key="HairlineBrush" Color="{DynamicResource HairlineColor}"/>
+    <SolidColorBrush x:Key="HairlineStrongBrush" Color="{DynamicResource HairlineStrongColor}"/>
+    <SolidColorBrush x:Key="HoverBrush" Color="{DynamicResource HoverColor}"/>
+    <SolidColorBrush x:Key="SelectedBrush" Color="{DynamicResource SelectedColor}"/>
+    <SolidColorBrush x:Key="ActiveBrush" Color="{DynamicResource ActiveColor}"/>
+    <SolidColorBrush x:Key="TextBrush" Color="{DynamicResource TextColor}"/>
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="{DynamicResource TextSecondaryColor}"/>
+    <SolidColorBrush x:Key="TextMutedBrush" Color="{DynamicResource TextMutedColor}"/>
+    <SolidColorBrush x:Key="TextFaintBrush" Color="{DynamicResource TextFaintColor}"/>
+    <SolidColorBrush x:Key="AccentBrush" Color="{DynamicResource AccentColor}"/>
+    <SolidColorBrush x:Key="AccentSoftBrush" Color="{DynamicResource AccentSoftColor}"/>
+    <SolidColorBrush x:Key="AccentBorderBrush" Color="{DynamicResource AccentBorderColor}"/>
+    <SolidColorBrush x:Key="RunningBrush" Color="{DynamicResource RunningColor}"/>
+    <SolidColorBrush x:Key="RunningSoftBrush" Color="{DynamicResource RunningSoftColor}"/>
+    <SolidColorBrush x:Key="WarnBrush" Color="{DynamicResource WarnColor}"/>
+    <SolidColorBrush x:Key="ErrorBrush" Color="{DynamicResource ErrorColor}"/>
+    <SolidColorBrush x:Key="ErrorSoftBrush" Color="{DynamicResource ErrorSoftColor}"/>
+    <SolidColorBrush x:Key="StoppedBrush" Color="{DynamicResource StoppedColor}"/>
+    <SolidColorBrush x:Key="ScrimBrush" Color="{DynamicResource ScrimColor}"/>
+
+    <!-- Update banner (TomLabs.AutoUpdate.Avalonia) painted with the same tokens. -->
+    <SolidColorBrush x:Key="UpdateBannerBackground" Color="{DynamicResource PanelColor}"/>
+    <SolidColorBrush x:Key="UpdateBannerBorder" Color="{DynamicResource HairlineStrongColor}"/>
+    <SolidColorBrush x:Key="UpdateBannerForeground" Color="{DynamicResource TextSecondaryColor}"/>
+    <SolidColorBrush x:Key="UpdateBannerAccent" Color="{DynamicResource AccentColor}"/>
+    <SolidColorBrush x:Key="UpdateBannerAccentSoft" Color="{DynamicResource AccentSoftColor}"/>
+    <SolidColorBrush x:Key="UpdateBannerError" Color="{DynamicResource ErrorColor}"/>
+
+    <!-- The logo keeps its blue in both themes: it is the logo, not a text colour. -->
+    <SolidColorBrush x:Key="LogoBrush" Color="#2DD4BF"/>
+
+    <!-- Fluent resources the built-in control templates read; pointing them at the tokens keeps focus rings,
+         selection and text inputs on-palette without re-templating every control. -->
+    <Color x:Key="SystemAccentColor">#2DD4BF</Color>
+    <Color x:Key="SystemAccentColorDark1">#25B3A2</Color>
+    <Color x:Key="SystemAccentColorDark2">#0F766E</Color>
+    <Color x:Key="SystemAccentColorDark3">#115E59</Color>
+    <Color x:Key="SystemAccentColorLight1">#5EEAD4</Color>
+    <Color x:Key="SystemAccentColorLight2">#99F6E4</Color>
+    <Color x:Key="SystemAccentColorLight3">#CCFBF1</Color>
+</ResourceDictionary>

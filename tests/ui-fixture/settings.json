@@ -1,0 +1,7 @@
+{
+  "theme": "Dark",
+  "logDirectory": "logs",
+  "logLevel": "Debug",
+  "recent": [],
+  "autoAdvance": true
+}

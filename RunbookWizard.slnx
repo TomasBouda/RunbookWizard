@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/RunbookWizard.App/RunbookWizard.App.csproj" />
     <Project Path="src/RunbookWizard.Core/RunbookWizard.Core.csproj" />
   </Folder>
   <Folder Name="/tests/">
