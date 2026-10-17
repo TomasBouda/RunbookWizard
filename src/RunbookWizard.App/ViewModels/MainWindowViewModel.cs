@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using RunbookWizard.App.Services;
@@ -13,7 +14,7 @@ using RunbookWizard.Core.Parsing;
 
 namespace RunbookWizard.App.ViewModels;
 
-public enum Page { Welcome, Overview, Parameters, Step, Logs }
+public enum Page { Welcome, Overview, Parameters, Step, Logs, Settings }
 
 /// <summary>A finding of the parser shown on the Overview page.</summary>
 public sealed record DiagnosticItem(bool IsError, string Where, string Message)
@@ -39,6 +40,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         ElevationProbe = elevation ?? new ProcessElevationProbe();
         _settings = store.Load();
         _theme = ThemeModes.Normalize(_settings.Theme);
+        Settings = new SettingsViewModel(_settings, () => _store.Save(_settings));
         Palette = new CommandPaletteViewModel(this);
         Logs = new LogsViewModel();
         LoadWelcomeLists();
@@ -124,6 +126,57 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
     public LogsViewModel Logs { get; }
 
+    public SettingsViewModel Settings { get; }
+
+    /// <summary>Queues work on the UI thread (step output lines). Tests replace it to run without a dispatcher.</summary>
+    public Action<Action> PostToUi { get; set; } = action => Dispatcher.UIThread.Post(action);
+
+    // ---- agent actions (ADR 0015) ----
+
+    /// <summary>The agent's pending request to run a step; shown as the banner above the page. At most one at a time.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasAgentRequest))]
+    private AgentRequestViewModel? _agentRequest;
+
+    public bool HasAgentRequest => AgentRequest is not null;
+
+    /// <summary>"Opened by Claude Code at 14:05" when an agent opened the guide; cleared when the person opens one.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasAgentOpenedNote))]
+    private string _agentOpenedNote = string.Empty;
+
+    public bool HasAgentOpenedNote => AgentOpenedNote.Length > 0;
+
+    /// <summary>
+    /// A run is in progress and an agent may not replace the guide: a step runs, a request waits, or the person has settled a step
+    /// (done, failed, or skipped by hand) and the guide is not finished.
+    /// </summary>
+    public bool IsRunInProgress => AgentRequest is not null
+        || Steps.Any(s => s.IsRunning)
+        || (!IsFinished && Steps.Any(s => s.IsDone || s.IsFailed || (s.IsSkipped && !s.SkippedByCondition && !s.SkippedByBranch)));
+
+    /// <summary>Opens a guide for an agent and marks it as such. The caller has checked <see cref="IsRunInProgress"/>.</summary>
+    internal void OpenForAgent(string path, string agent)
+    {
+        Open(path);
+        AgentOpenedNote = $"Opened by {agent} at {DateTime.Now:HH:mm}. Nothing has been run.";
+        StatusText = $"{agent} opened {GuideTitle}. Nothing has been run.";
+    }
+
+    /// <summary>Shows an agent's request to run <paramref name="step"/>: selects the step and puts the banner up.</summary>
+    internal AgentRequestViewModel RequestAgentRun(string agent, StepViewModel step, TimeSpan timeout)
+    {
+        var request = new AgentRequestViewModel(agent, step, timeout, closed =>
+        {
+            if (ReferenceEquals(AgentRequest, closed))
+                AgentRequest = null;
+        });
+        SelectedStep = step;
+        AgentRequest = request;
+        StatusText = $"{agent} asks to run step {step.Number}. Run or decline it in the banner.";
+        return request;
+    }
+
     /// <summary>Set by the view: shows the file picker and returns the chosen guide path (null when cancelled).</summary>
     public Func<Task<string?>>? PickGuide { get; set; }
 
@@ -144,7 +197,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
     public ObservableCollection<GuideLink> ExampleGuides { get; } = new();
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ShowWelcome), nameof(ShowOverview), nameof(ShowParameters), nameof(ShowStep), nameof(ShowLogs), nameof(OverviewSelected), nameof(ParametersSelected))]
+    [NotifyPropertyChangedFor(nameof(ShowWelcome), nameof(ShowOverview), nameof(ShowParameters), nameof(ShowStep), nameof(ShowLogs), nameof(ShowSettings), nameof(OverviewSelected), nameof(ParametersSelected))]
     private Page _page = Page.Welcome;
 
     private Page _pageBeforeLogs = Page.Welcome;
@@ -197,6 +250,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
     public bool ShowStep => Page == Page.Step;
 
     public bool ShowLogs => Page == Page.Logs;
+
+    public bool ShowSettings => Page == Page.Settings;
 
     public bool OverviewSelected => Page == Page.Overview;
 
@@ -271,6 +326,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
             return;
         }
 
+        AgentRequest?.Cancel();
+        AgentOpenedNote = string.Empty;
         foreach (var step in Steps)
             step.Abort();
         Steps.Clear();
@@ -371,6 +428,20 @@ public sealed partial class MainWindowViewModel : ObservableObject
         Logs.ReloadFilesCommand.Execute(null);
     }
 
+    /// <summary>Opens the Settings page; again returns to the page before it.</summary>
+    [RelayCommand]
+    private void ToggleSettings()
+    {
+        if (Page == Page.Settings)
+        {
+            Page = _pageBeforeLogs;
+            return;
+        }
+        if (Page != Page.Logs)
+            _pageBeforeLogs = Page;
+        Page = Page.Settings;
+    }
+
     /// <summary>Opens the first step that still needs attention (or the Parameters page when something required is empty).</summary>
     [RelayCommand]
     private void Start()
@@ -401,6 +472,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
             case Page.Overview: ShowOverviewPage(); break;
             case Page.Parameters: ShowParametersPage(); break;
             case Page.Logs: if (Page != Page.Logs) ToggleLogs(); break;
+            case Page.Settings: if (Page != Page.Settings) ToggleSettings(); break;
             default: break;
         }
     }
@@ -540,6 +612,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
     public void Shutdown()
     {
+        AgentRequest?.Cancel();
         foreach (var step in Steps)
             step.Abort();
     }

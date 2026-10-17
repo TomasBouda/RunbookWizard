@@ -21,6 +21,20 @@ RunbookWizard is the reference player for it.
 
 Guide content is untrusted input: nothing runs without a click and the exact command is always shown first.
 
+## Use it from an agent (MCP)
+
+While RunbookWizard runs it serves an MCP endpoint on `http://127.0.0.1:5233/mcp` (local only; switch it off or
+see its state on the Settings page, Ctrl+,). Register it once in Claude Code:
+
+```
+claude mcp add --transport http runbookwizard http://127.0.0.1:5233/mcp
+```
+
+Tools: `list_runbooks`, `get_runbook`, `validate_runbook` (read only), `open_runbook`, `fill_placeholders` and
+`run_step`. An agent can open a guide, fill its non-secret parameters and ask to run the current script step; the
+player shows the request with the exact command and nothing runs until you press Run (no answer within 120 s counts as
+declined). Set `RUNBOOKWIZARD_MCP_PORT` to use another port. Design: [ADR 0015](docs/decisions/0015-in-app-mcp-server.md).
+
 ## Build and test
 
 ```

@@ -25,6 +25,7 @@
     <KeyBinding Gesture="Ctrl+O" Command="{Binding OpenFileCommand}" />
     <KeyBinding Gesture="Ctrl+L" Command="{Binding ToggleLogsCommand}" />
     <KeyBinding Gesture="Ctrl+Shift+L" Command="{Binding CycleThemeCommand}" />
+    <KeyBinding Gesture="Ctrl+OemComma" Command="{Binding ToggleSettingsCommand}" />
   </Window.KeyBindings>
 
   <!-- A maximized window with an extended client area hangs past the screen edge; OffScreenMargin pulls the content back in. -->
@@ -33,7 +34,7 @@
 
       <!-- ===== Header / title bar ===== -->
       <Border Grid.Row="0" Classes="hairline-b" Padding="14,0,150,0" Name="HeaderBar" Background="Transparent" PointerPressed="OnHeaderPointerPressed">
-        <Grid ColumnDefinitions="Auto,12,360,*,Auto,Auto,Auto,12,Auto" VerticalAlignment="Center">
+        <Grid ColumnDefinitions="Auto,12,360,*,Auto,Auto,Auto,Auto,12,Auto" VerticalAlignment="Center">
           <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
             <i:Icon Value="fa-solid fa-list-check" FontSize="14" Foreground="{DynamicResource LogoBrush}" />
             <TextBlock Text="RunbookWizard" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
@@ -61,10 +62,13 @@
           <Button Grid.Column="5" Name="LogsButton" Classes="icon" Command="{Binding ToggleLogsCommand}" ToolTip.Tip="Logs (Ctrl+L)">
             <i:Icon Value="fa-solid fa-scroll" FontSize="12" />
           </Button>
-          <Button Grid.Column="6" Name="ThemeButton" Classes="icon" Command="{Binding CycleThemeCommand}" ToolTip.Tip="{Binding ThemeTip}">
+          <Button Grid.Column="6" Name="SettingsButton" Classes="icon" Command="{Binding ToggleSettingsCommand}" ToolTip.Tip="Settings (Ctrl+,)">
+            <i:Icon Value="fa-solid fa-gear" FontSize="12" />
+          </Button>
+          <Button Grid.Column="7" Name="ThemeButton" Classes="icon" Command="{Binding CycleThemeCommand}" ToolTip.Tip="{Binding ThemeTip}">
             <i:Icon Value="{Binding ThemeIcon}" FontSize="13" />
           </Button>
-          <TextBlock Grid.Column="8" Name="VersionText" Classes="mono muted" FontSize="11" Text="{Binding Version, StringFormat='v{0}'}" VerticalAlignment="Center" />
+          <TextBlock Grid.Column="9" Name="VersionText" Classes="mono muted" FontSize="11" Text="{Binding Version, StringFormat='v{0}'}" VerticalAlignment="Center" />
         </Grid>
       </Border>
 
@@ -132,10 +136,48 @@
         </Border>
 
         <!-- Content -->
-        <Grid Grid.Column="1" RowDefinitions="Auto,*">
+        <Grid Grid.Column="1" RowDefinitions="Auto,Auto,*">
+
+        <!-- An agent asks to run the current step (ADR 0015): nothing runs until the person presses Run -->
+        <Border Grid.Row="0" Name="AgentRequestBanner" Classes="agent-request" IsVisible="{Binding HasAgentRequest}">
+          <Grid ColumnDefinitions="Auto,12,*" DataContext="{Binding AgentRequest}" x:DataType="vm:AgentRequestViewModel">
+            <i:Icon Grid.Column="0" Value="fa-solid fa-robot" FontSize="15" Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Top" Margin="0,2,0,0" />
+            <StackPanel Grid.Column="2" Spacing="8">
+              <StackPanel Spacing="4">
+                <TextBlock Classes="section" Text="AGENT REQUEST" />
+                <TextBlock Name="AgentRequestTitle" Text="{Binding Title}" FontSize="13.5" FontWeight="SemiBold" TextWrapping="Wrap" />
+                <WrapPanel Orientation="Horizontal">
+                  <Border Classes="chip" Margin="0,0,6,0"><TextBlock Text="{Binding Step.ShellLabel}" /></Border>
+                  <Border Classes="chip error" Margin="0,0,6,0" IsVisible="{Binding Step.IsDestructive}"><TextBlock Text="DESTRUCTIVE" /></Border>
+                  <Border Classes="chip warn" Margin="0,0,6,0" IsVisible="{Binding Step.IsElevated}"><TextBlock Text="NEEDS ADMINISTRATOR" /></Border>
+                </WrapPanel>
+              </StackPanel>
+              <TextBlock Classes="error" FontSize="12" TextWrapping="Wrap" IsVisible="{Binding Step.HasWarning}" Text="{Binding Step.Warning}" />
+              <ItemsControl ItemsSource="{Binding Step.Risks}" IsVisible="{Binding Step.HasRisks}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="sys:String"><TextBlock Classes="secondary" FontSize="12" Text="{Binding ., StringFormat='This command {0}.'}" TextWrapping="Wrap" /></DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <Border Classes="command">
+                <ScrollViewer MaxHeight="150" HorizontalScrollBarVisibility="Auto">
+                  <SelectableTextBlock Name="AgentRequestCommand" FontFamily="{StaticResource MonoFont}" FontSize="11.5" Text="{Binding Step.Preview}" />
+                </ScrollViewer>
+              </Border>
+              <Grid ColumnDefinitions="Auto,8,Auto,16,*">
+                <Button Grid.Column="0" Name="AgentRunButton" Classes="accent" Command="{Binding RunCommand}">
+                  <StackPanel><i:Icon Value="fa-solid fa-play" FontSize="10" /><TextBlock Text="Run" /></StackPanel>
+                </Button>
+                <Button Grid.Column="2" Name="AgentDeclineButton" Command="{Binding DeclineCommand}">
+                  <StackPanel><i:Icon Value="fa-solid fa-xmark" FontSize="10" /><TextBlock Text="Decline" /></StackPanel>
+                </Button>
+                <TextBlock Grid.Column="4" Classes="muted" FontSize="11.5" Text="{Binding TimeoutText}" TextWrapping="Wrap" VerticalAlignment="Center" />
+              </Grid>
+            </StackPanel>
+          </Grid>
+        </Border>
 
         <!-- Not elevated, but the guide has steps that need administrator rights: a notice, not a block (ADR 0013) -->
-        <Border Grid.Row="0" Name="ElevationBanner" Classes="hairline-b" Background="{DynamicResource PanelBrush}" Padding="18,10" IsVisible="{Binding ShowElevationBanner}">
+        <Border Grid.Row="1" Name="ElevationBanner" Classes="hairline-b" Background="{DynamicResource PanelBrush}" Padding="18,10" IsVisible="{Binding ShowElevationBanner}">
           <Grid ColumnDefinitions="Auto,10,*,12,Auto">
             <i:Icon Grid.Column="0" Value="fa-solid fa-shield-halved" FontSize="14" Foreground="{DynamicResource WarnBrush}" VerticalAlignment="Center" />
             <StackPanel Grid.Column="2" Spacing="2" VerticalAlignment="Center">
@@ -150,7 +192,7 @@
           </Grid>
         </Border>
 
-        <Panel Grid.Row="1">
+        <Panel Grid.Row="2">
 
           <!-- Welcome: nothing open yet -->
           <ScrollViewer IsVisible="{Binding ShowWelcome}">
@@ -207,6 +249,13 @@
               </StackPanel>
               <ctl:MarkdownView Name="GuideDescriptionView" Classes="secondary" Markdown="{Binding GuideDescription}" MaxWidth="760" HorizontalAlignment="Left" IsVisible="{Binding GuideDescription, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
 
+              <Border Name="AgentOpenedNotice" Classes="notice agent" IsVisible="{Binding HasAgentOpenedNote}">
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                  <i:Icon Value="fa-solid fa-robot" FontSize="13" Foreground="{DynamicResource AccentBrush}" />
+                  <TextBlock Text="{Binding AgentOpenedNote}" VerticalAlignment="Center" TextWrapping="Wrap" />
+                </StackPanel>
+              </Border>
+
               <Border Classes="notice ok" IsVisible="{Binding IsFinished}">
                 <StackPanel Orientation="Horizontal" Spacing="10">
                   <i:Icon Value="fa-solid fa-circle-check" FontSize="14" Foreground="{DynamicResource RunningBrush}" />
@@ -261,7 +310,11 @@
                           <TextBlock Text="{Binding Label}" FontWeight="Medium" FontSize="13" />
                           <TextBlock Text="required" Classes="muted" FontSize="10.5" VerticalAlignment="Center" IsVisible="{Binding Required}" />
                           <TextBlock Text="{Binding Placeholder}" Classes="mono muted" FontSize="10.5" VerticalAlignment="Center" />
+                          <Border Classes="chip accent" VerticalAlignment="Center" IsVisible="{Binding IsFilledByAgent}" ToolTip.Tip="{Binding FilledByText}">
+                            <TextBlock Text="AGENT" />
+                          </Border>
                         </StackPanel>
+                        <TextBlock Classes="muted" FontSize="11" Text="{Binding FilledByText, StringFormat='{}{0}. Change it if it is not right.'}" IsVisible="{Binding IsFilledByAgent}" />
                         <TextBlock Classes="secondary" TextWrapping="Wrap" Text="{Binding Description}" IsVisible="{Binding HasDescription}" />
                         <TextBox Classes="mono" Text="{Binding Value}" PasswordChar="{Binding PasswordChar}" IsVisible="{Binding IsText}" />
                         <ComboBox ItemsSource="{Binding Choices}" SelectedItem="{Binding Value}" IsVisible="{Binding IsChoice}" MinWidth="220" />
@@ -288,6 +341,7 @@
                   <Border Classes="chip" Margin="0,0,6,4" IsVisible="{Binding IsScript}"><TextBlock Text="{Binding ShellLabel}" /></Border>
                   <Border Classes="chip error" Margin="0,0,6,4" IsVisible="{Binding IsDestructive}"><TextBlock Text="DESTRUCTIVE" /></Border>
                   <Border Classes="chip warn" Margin="0,0,6,4" IsVisible="{Binding IsElevated}"><TextBlock Text="NEEDS ADMINISTRATOR" /></Border>
+                  <Border Classes="chip accent" Margin="0,0,6,4" IsVisible="{Binding HasAgentNote}" ToolTip.Tip="{Binding AgentNote}"><TextBlock Name="AgentRunChip" Text="RUN BY AGENT" /></Border>
                 </WrapPanel>
               </StackPanel>
 
@@ -438,6 +492,7 @@
                 <StackPanel Spacing="3">
                   <TextBlock Name="VerdictText" Text="{Binding Verdict}" TextWrapping="Wrap" FontWeight="Medium" />
                   <TextBlock Classes="mono muted" FontSize="10.5" Text="{Binding RunInfo}" />
+                  <TextBlock Name="AgentNoteText" Classes="muted" FontSize="11" Text="{Binding AgentNote}" IsVisible="{Binding HasAgentNote}" TextWrapping="Wrap" />
                 </StackPanel>
               </Border>
 
@@ -455,6 +510,54 @@
                   </ScrollViewer>
                 </Border>
               </StackPanel>
+            </StackPanel>
+          </ScrollViewer>
+
+          <!-- Settings page (ADR 0015) -->
+          <ScrollViewer IsVisible="{Binding ShowSettings}" Name="SettingsPage">
+            <StackPanel Margin="24,20,24,24" Spacing="16" MaxWidth="720" HorizontalAlignment="Left" Classes="fade-in" DataContext="{Binding Settings}" x:DataType="vm:SettingsViewModel">
+              <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Spacing="6">
+                  <TextBlock Classes="section" Text="SETTINGS" />
+                  <TextBlock Classes="title" FontSize="20" Text="Settings" />
+                </StackPanel>
+                <Button Grid.Column="1" VerticalAlignment="Top" Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).ToggleSettingsCommand}" ToolTip.Tip="Back (Ctrl+,)">
+                  <StackPanel><i:Icon Value="fa-solid fa-arrow-left" FontSize="10" /><TextBlock Text="Back" /></StackPanel>
+                </Button>
+              </Grid>
+
+              <Border Classes="card" Padding="16,14">
+                <StackPanel Spacing="12">
+                  <Grid ColumnDefinitions="*,16,Auto">
+                    <StackPanel Spacing="4">
+                      <TextBlock Text="MCP server for agents" FontSize="13.5" FontWeight="SemiBold" />
+                      <TextBlock Classes="secondary" TextWrapping="Wrap"
+                                 Text="Lets agents on this computer list, read and validate guides, open one here, fill in its parameters and ask to run the current step. Every run waits for your Run in the app; secrets stay with you." />
+                    </StackPanel>
+                    <ToggleSwitch Grid.Column="2" Name="McpToggle" IsChecked="{Binding McpEnabled}" OnContent="On" OffContent="Off" VerticalAlignment="Top" />
+                  </Grid>
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Classes="section" Text="STATE" VerticalAlignment="Center" />
+                    <Border Classes="chip" Classes.running="{Binding IsListening}" Classes.error="{Binding IsFailed}">
+                      <TextBlock Name="McpStateText" Text="{Binding StateLabel}" />
+                    </Border>
+                  </StackPanel>
+                  <StackPanel Spacing="6">
+                    <TextBlock Classes="section" Text="REGISTER WITH CLAUDE CODE" />
+                    <Grid ColumnDefinitions="*,8,Auto">
+                      <Border Classes="command">
+                        <SelectableTextBlock Name="McpCommandText" FontFamily="{StaticResource MonoFont}" FontSize="11.5" Text="{Binding McpCommand}" TextWrapping="Wrap" />
+                      </Border>
+                      <Button Grid.Column="2" Name="CopyMcpCommandButton" Command="{Binding CopyCommandCommand}" VerticalAlignment="Top" ToolTip.Tip="Copy the command">
+                        <StackPanel><i:Icon Value="fa-regular fa-copy" FontSize="10" /><TextBlock Text="Copy" /></StackPanel>
+                      </Button>
+                    </Grid>
+                    <TextBlock Classes="muted" FontSize="11" Text="{Binding CopyHint}" IsVisible="{Binding CopyHint, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    <TextBlock Classes="muted" FontSize="11" TextWrapping="Wrap"
+                               Text="Loopback only, no token. The port is McpPort in settings.json, or RUNBOOKWIZARD_MCP_PORT for one run." />
+                  </StackPanel>
+                </StackPanel>
+              </Border>
             </StackPanel>
           </ScrollViewer>
 

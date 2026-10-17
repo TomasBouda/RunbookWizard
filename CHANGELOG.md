@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.0 — 2026-10-17
+
+- Added: an MCP server inside the app (127.0.0.1:5233, local only) so an agent such as Claude Code can work with the player: list, read and validate guides, open a guide, fill in its parameters and ask you to run the current script step.
+- Added: nothing an agent asks for runs by itself. A banner shows the agent's request with the exact command and its warnings; you press Run or Decline, and no answer within 120 s counts as declined. Secrets, manual, info and choice steps, and restarting as administrator stay with you.
+- Added: what an agent did is marked in the player: "Opened by …", parameters "Filled in by …" (until you change them) and steps "Run at the request of …, confirmed by you".
+- Added: a Settings page (gear in the header, the command palette or Ctrl+,) to switch the MCP server on or off, see whether it listens, and copy the `claude mcp add` command. `RUNBOOKWIZARD_MCP_PORT` changes the port.
+
 ## 0.2.0 — 2026-10-13
 
 - Added: the player updates itself from GitHub Releases (stable and nightly channels, signed manifests, update banner, "Check for updates" in the command palette).

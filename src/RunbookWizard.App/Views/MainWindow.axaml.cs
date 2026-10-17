@@ -18,7 +18,10 @@ public partial class MainWindow : Window
         DataContextChanged += (_, _) =>
         {
             if (DataContext is MainWindowViewModel vm)
+            {
                 vm.PickGuide = PickGuideAsync;
+                vm.Settings.CopyText = text => Clipboard?.SetTextAsync(text) ?? Task.CompletedTask;
+            }
         };
 
         // The window is up: a freshly installed update may drop its rollback backup.

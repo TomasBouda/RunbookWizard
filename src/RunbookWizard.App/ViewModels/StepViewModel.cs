@@ -4,7 +4,6 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using RunbookWizard.App.Services;
@@ -387,6 +386,7 @@ public sealed partial class StepViewModel : ObservableObject
         OnPropertyChanged(nameof(HasOutput));
         Verdict = string.Empty;
         RunInfo = string.Empty;
+        AgentNote = string.Empty;
         SkippedByCondition = false;
         SkippedByBranch = false;
         _chosenTarget = null;
@@ -414,27 +414,55 @@ public sealed partial class StepViewModel : ObservableObject
         _owner.StepSettled(this, advance: true);
     }
 
+    // ---- agent runs (ADR 0015) ----
+
+    /// <summary>An agent ran this step after the person confirmed it in the banner; shown as a chip and a note on the step.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasAgentNote))]
+    private string _agentNote = string.Empty;
+
+    public bool HasAgentNote => AgentNote.Length > 0;
+
+    /// <summary>
+    /// Runs the step for an agent after the person pressed Run in the agent-request banner. The banner is the confirmation, also for a
+    /// destructive step, so the two-click warning of the Run button is not asked again; every other check of the Run button stays.
+    /// </summary>
+    internal async Task<AgentRunOutcome> RunForAgentAsync(string agent)
+    {
+        if (!IsScript || IsRunning || IsBlocked || ElevationBlocked)
+            throw new InvalidOperationException("The step can no longer be run: the player changed while the request waited.");
+        RefreshPlan();
+        if (_plan is not { CanRun: true } plan)
+            throw new InvalidOperationException("The step can no longer be run: " + string.Join(" ", Problems));
+        ConfirmPending = false;
+        AgentNote = $"Run at the request of {agent}, confirmed by you.";
+        return await ExecuteAsync(plan, agent);
+    }
+
     /// <summary>Cancels a running step; used when the guide is closed or the window exits.</summary>
     public void Abort() => _cts?.Cancel();
 
-    private async Task ExecuteAsync(StepPlan plan)
+    private async Task<AgentRunOutcome> ExecuteAsync(StepPlan plan, string? agent = null)
     {
         Output.Clear();
         OnPropertyChanged(nameof(HasOutput));
         Verdict = string.Empty;
+        if (agent is null)
+            AgentNote = string.Empty; // the latest run is the person's own
         RunInfo = "running…";
         Status = StepStatus.Running;
         _owner.StepSettled(this, advance: false);
 
         var variables = _owner.Variables!;
-        AppLog.For("run").Information("Step {Step} started in {Shell}{Destructive}", Id, plan.Shell.ToString().ToLowerInvariant(), Model.Destructive ? " (destructive, confirmed)" : string.Empty);
+        AppLog.For("run").Information("Step {Step} started in {Shell}{Destructive}{Agent}", Id, plan.Shell.ToString().ToLowerInvariant(),
+            Model.Destructive ? " (destructive, confirmed)" : string.Empty, agent is null ? string.Empty : " at an agent's request, confirmed by the person");
         AppLog.For("run").Debug("Step {Step} command: {Command}", Id, plan.MaskedScript);
 
         _cts = new CancellationTokenSource();
         RunResult result;
         try
         {
-            result = await ScriptRunner.RunAsync(plan.ToSpec(), line => Dispatcher.UIThread.Post(() => AddOutput(variables, line)), _cts.Token);
+            result = await ScriptRunner.RunAsync(plan.ToSpec(), line => _owner.PostToUi(() => AddOutput(variables, line)), _cts.Token);
         }
         catch (Exception ex)
         {
@@ -459,6 +487,7 @@ public sealed partial class StepViewModel : ObservableObject
         Status = judged.Success ? StepStatus.Done : StepStatus.Failed;
         AppLog.For("run").Information("Step {Step} {Outcome}: {Reason} ({Info})", Id, judged.Success ? "succeeded" : "failed", Verdict, RunInfo);
         _owner.StepSettled(this, advance: false);
+        return new AgentRunOutcome(judged.Success, Verdict, result.ExitCode, result.Duration, variables.MaskSecrets(result.Output));
     }
 
     private void AddOutput(VariableStore variables, OutputLine line)
@@ -470,6 +499,9 @@ public sealed partial class StepViewModel : ObservableObject
             OnPropertyChanged(nameof(HasOutput));
     }
 }
+
+/// <summary>What a step run returns to an agent: the player's verdict and the whole output with secret values masked.</summary>
+public sealed record AgentRunOutcome(bool Success, string Reason, int? ExitCode, TimeSpan Duration, string MaskedOutput);
 
 /// <summary>One answer of a choice step, shown as a button.</summary>
 public sealed partial class OptionViewModel : ObservableObject

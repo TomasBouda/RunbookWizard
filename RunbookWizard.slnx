@@ -4,6 +4,7 @@
     <Project Path="src/RunbookWizard.Core/RunbookWizard.Core.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/RunbookWizard.App.Tests/RunbookWizard.App.Tests.csproj" />
     <Project Path="tests/RunbookWizard.Core.Tests/RunbookWizard.Core.Tests.csproj" />
   </Folder>
 </Solution>

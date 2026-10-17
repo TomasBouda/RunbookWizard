@@ -1,8 +1,10 @@
 using System;
 using System.Linq;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using Avalonia.Threading;
 using RunbookWizard.Core.Execution;
 using RunbookWizard.App.Services;
 using RunbookWizard.App.ViewModels;
@@ -43,10 +45,23 @@ public partial class App : Application
             var viewModel = new MainWindowViewModel(store) { ExitApplication = () => desktop.Shutdown() };
             desktop.MainWindow = new MainWindow { DataContext = viewModel };
             var automation = StartAutomation(desktop, viewModel);
+
+            var mcp = new Mcp.McpServerController(options => StartMcp(desktop, viewModel, options));
+            viewModel.Settings.McpEnabledChanged += enabled =>
+            {
+                var options = Mcp.McpOptions.Resolve(store.Load());
+                if (options.Enabled)
+                    viewModel.Settings.State = McpState.Starting;
+                _ = mcp.RestartAsync(options);
+            };
+            _ = mcp.RestartAsync(Mcp.McpOptions.Resolve(store.Load()));
+
             desktop.Exit += (_, _) =>
             {
                 automation?.Dispose();
                 viewModel.Shutdown();
+                // Releases the port; a run_step that still waits was declined by Shutdown above.
+                mcp.DisposeAsync().AsTask().Wait(TimeSpan.FromSeconds(5));
                 AppLog.Shutdown();
             };
 
@@ -58,8 +73,61 @@ public partial class App : Application
     }
 
     /// <summary>
+    /// Starts the in-app MCP server (ADR 0015) off the UI thread. A port that is taken is logged once and shown on the Settings
+    /// page; the player works without MCP.
+    /// </summary>
+    private static Mcp.McpServerLifetime? StartMcp(IClassicDesktopStyleApplicationLifetime desktop, MainWindowViewModel viewModel, Mcp.McpOptions options)
+    {
+        if (!options.Enabled)
+        {
+            Dispatcher.UIThread.Post(viewModel.Settings.SetOff);
+            AppLog.For("mcp").Information("MCP server is switched off in the settings");
+            return null;
+        }
+
+        var context = new Mcp.RunbookContext(viewModel, new Mcp.AvaloniaUiThread(), () => Dispatcher.UIThread.Post(() => BringToFront(desktop)));
+        var lifetime = new Mcp.McpServerLifetime(ct => Mcp.McpServerHost.StartAsync(context, options.Port, AppInfo.Version, ct));
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                var host = await lifetime.Startup.ConfigureAwait(false);
+                var token = lifetime.Token;
+                Dispatcher.UIThread.Post(() =>
+                {
+                    if (!token.IsCancellationRequested)
+                        viewModel.Settings.SetListening(host.Port);
+                });
+            }
+            catch (OperationCanceledException) { }
+            catch (Exception ex)
+            {
+                var reason = ex is Mcp.McpStartException ? ex.Message : $"Port {options.Port} could not be opened";
+                AppLog.For("mcp").Error(ex, "The MCP server could not start on port {Port}; RunbookWizard continues without it", options.Port);
+                Dispatcher.UIThread.Post(() =>
+                {
+                    if (!lifetime.Token.IsCancellationRequested)
+                        viewModel.Settings.SetFailed(options.Port, reason);
+                });
+            }
+        });
+        return lifetime;
+    }
+
+    /// <summary>Brings the window forward for an agent's action; a minimised window is restored.</summary>
+    private static void BringToFront(IClassicDesktopStyleApplicationLifetime desktop)
+    {
+        if (desktop.MainWindow is not { } window)
+            return;
+        window.Show();
+        if (window.WindowState == Avalonia.Controls.WindowState.Minimized)
+            window.WindowState = Avalonia.Controls.WindowState.Normal;
+        window.Activate();
+    }
+
+    /// <summary>
     /// Scripted UI channel (RUNBOOKWIZARD_AUTOMATION=&lt;port&gt;, see CLAUDE.md) with the player's own shortcuts on top of the
-    /// generic endpoints: <c>/do/page?arg=overview|parameters|logs</c>, <c>/do/open?arg=&lt;path&gt;</c> and <c>/do/select?arg=&lt;step id or number&gt;</c> and <c>/do/choose?arg=&lt;option number or label&gt;</c> (answers the choice step on screen, like clicking its option), <c>/do/tick?arg=&lt;item number|all|none&gt;</c> (toggles checklist items of the selected manual step).
+    /// generic endpoints: <c>/do/page?arg=overview|parameters|logs|settings</c>, <c>/do/open?arg=&lt;path&gt;</c> and <c>/do/select?arg=&lt;step id or number&gt;</c> and <c>/do/choose?arg=&lt;option number or label&gt;</c> (answers the choice step on screen, like clicking its option), <c>/do/tick?arg=&lt;item number|all|none&gt;</c> (toggles checklist items of the selected manual step).
     /// Running a step is not a shortcut: scripts click the Run button like a person does.
     /// </summary>
     private static UiAutomationServer? StartAutomation(IClassicDesktopStyleApplicationLifetime desktop, MainWindowViewModel viewModel)
@@ -70,7 +138,7 @@ public partial class App : Application
 
         server.Actions["page"] = (window, arg) =>
         {
-            viewModel.GoTo(Enum.TryParse<Page>(arg, true, out var page) ? page : throw new ArgumentException($"Unknown page '{arg}' (overview, parameters, logs)"));
+            viewModel.GoTo(Enum.TryParse<Page>(arg, true, out var page) ? page : throw new ArgumentException($"Unknown page '{arg}' (overview, parameters, logs, settings)"));
             return new { page = viewModel.Page.ToString() };
         };
         server.Actions["open"] = (window, arg) =>

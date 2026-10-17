@@ -64,6 +64,18 @@
         <Setter Property="Background" Value="{DynamicResource RunningSoftBrush}"/>
     </Style>
 
+    <!-- Agent actions (ADR 0015): the request banner above the page and the "opened by an agent" notice carry the accent. -->
+    <Style Selector="Border.agent-request">
+        <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+        <Setter Property="BorderThickness" Value="0,0,0,1"/>
+        <Setter Property="Padding" Value="18,12"/>
+    </Style>
+    <Style Selector="Border.notice.agent">
+        <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+        <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}"/>
+    </Style>
+
     <Style Selector="Button.danger">
         <Setter Property="Background" Value="{DynamicResource ErrorSoftBrush}"/>
         <Setter Property="BorderBrush" Value="{DynamicResource ErrorBrush}"/>

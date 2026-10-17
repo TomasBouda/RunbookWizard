@@ -16,6 +16,12 @@ public sealed class AppSettings
     public bool AutoAdvance { get; set; } = true;
     public string? UpdateManifestUrl { get; set; }
     public string? UpdateChannel { get; set; }
+
+    /// <summary>The in-app MCP server for agents runs (ADR 0015); switched on the Settings page without a restart.</summary>
+    public bool McpEnabled { get; set; } = true;
+
+    /// <summary>The MCP server's loopback port; <c>RUNBOOKWIZARD_MCP_PORT</c> wins for one run.</summary>
+    public int McpPort { get; set; } = 5233;
 }
 
 /// <summary>

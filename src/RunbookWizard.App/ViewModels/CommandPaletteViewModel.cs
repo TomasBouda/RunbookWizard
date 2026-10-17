@@ -110,6 +110,7 @@ public sealed partial class CommandPaletteViewModel : ObservableObject
         _all.Add(new PaletteItem("App", ThemeModes.Icon(ThemeModes.Light), "Theme: light", "remembered", "", () => vm.SetThemeCommand.Execute(ThemeModes.Light)));
         _all.Add(new PaletteItem("App", ThemeModes.Icon(ThemeModes.Dark), "Theme: dark", "remembered", "", () => vm.SetThemeCommand.Execute(ThemeModes.Dark)));
         _all.Add(new PaletteItem("App", "fa-solid fa-scroll", vm.ShowLogs ? "Close the logs" : "Show logs", "recent events and log files", "Ctrl+L", () => vm.ToggleLogsCommand.Execute(null)));
+        _all.Add(new PaletteItem("App", "fa-solid fa-gear", vm.ShowSettings ? "Close the settings" : "Settings", "MCP server for agents", "Ctrl+,", () => vm.ToggleSettingsCommand.Execute(null)));
 
         if (TomLabs.AutoUpdate.Updater.Current is { } updater)
         {

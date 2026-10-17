@@ -35,6 +35,13 @@
     <!-- Scripted UI checks: the automation channel (RUNBOOKWIZARD_AUTOMATION=port) and the headless switch, see CLAUDE.md. -->
     <PackageReference Include="TomLabs.UiAutomation" Version="0.1.1" />
     <PackageReference Include="TomLabs.AutoUpdate.Avalonia" Version="0.3.2" />
+    <!-- Kestrel hosts the local MCP endpoint for agents (ADR 0015), as in Markdone and TaskGraph. -->
+    <PackageReference Include="ModelContextProtocol.AspNetCore" Version="2.2.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <InternalsVisibleTo Include="RunbookWizard.App.Tests" />
   </ItemGroup>
 
   <ItemGroup>

@@ -59,10 +59,38 @@ public sealed class VariableViewModel : ObservableObject
                 return;
             _store.Set(Model.Name, value);
             _seen = _store.Get(Model.Name);
+            FilledBy = null; // the person changed it (an agent's fill sets the mark again afterwards)
             OnPropertyChanged();
             Error = _store.Validate(Model) ?? string.Empty;
             _changed();
         }
+    }
+
+    private string? _filledBy;
+
+    /// <summary>The agent whose value the field holds (ADR 0015); cleared as soon as the person edits it.</summary>
+    public string? FilledBy
+    {
+        get => _filledBy;
+        private set
+        {
+            if (SetProperty(ref _filledBy, value))
+            {
+                OnPropertyChanged(nameof(IsFilledByAgent));
+                OnPropertyChanged(nameof(FilledByText));
+            }
+        }
+    }
+
+    public bool IsFilledByAgent => _filledBy is not null;
+
+    public string FilledByText => _filledBy is null ? string.Empty : "Filled in by " + _filledBy;
+
+    /// <summary>Sets the value on behalf of an agent and marks the field. Secret parameters never get here (the tool refuses them).</summary>
+    internal void FillByAgent(string value, string agent)
+    {
+        Value = value;
+        FilledBy = agent;
     }
 
     /// <summary>Tells the views that the stored value may have changed behind this object's back (a step captured it).</summary>
