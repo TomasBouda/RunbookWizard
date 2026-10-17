@@ -64,6 +64,19 @@ is visible in the app, and every step an agent wants to run is confirmed by the 
   - Unknown tool arguments are rejected.
   - The log records the tool name, the step id and the outcome, never the arguments' values.
   - At most one `run_step` waits at a time. A second one is refused.
+- **Details settled during the implementation.**
+  - `path` must be absolute; a relative path is refused.
+  - `validate_runbook` diagnostics also carry the JSON `path` of the problem.
+  - `get_runbook` gives no default for a secret placeholder.
+  - "A run in progress" for `open_runbook` means one of these: a request waits, a step is running, or the guide is
+    unfinished and the person has done, failed or skipped a step. Opening a guide and typing values does not count.
+  - For a destructive step, the banner shows the warning, and its **Run** is the explicit extra confirmation that
+    ADR 0004 asks for. The step's own two-click confirmation is not asked again.
+  - `fill_placeholders` is refused while a request waits or a step runs, so the command the person confirms cannot
+    change under them.
+  - A confirmed run behaves exactly like a click: the player does not move on by itself. The result names the
+    `currentStep`.
+  - The agent is named by MCP ClientInfo: the title, else the name, at most 60 characters, else "an agent".
 
 ## Alternatives considered
 - **`run_runbook` (run all steps unattended):** rejected. It is out of scope by the approval, and it contradicts
