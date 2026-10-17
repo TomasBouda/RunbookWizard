@@ -19,3 +19,4 @@ a new record that supersedes the old one. Current shape of the system: [../ARCHI
 | [0012](0012-placeholder-escape.md) | Placeholder escape is `{{!Name}}`: a backslash before a placeholder is a path separator | accepted |
 | [0013](0013-elevation-handling.md) | Elevation handling: detect, banner, gate elevated steps, restart as administrator through UAC without secrets | accepted |
 | [0014](0014-github-releases-distribution.md) | Distribution through GitHub Releases: GitHubReleasesSource, signed manifests, shared publish-app.yml, store pointer | accepted |
+| [0015](0015-in-app-mcp-server.md) | In-app MCP server on 127.0.0.1:5233: read tools, open/fill, run_step only with the person's confirmation in the app | accepted |
